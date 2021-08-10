@@ -300,17 +300,21 @@ target_link_libraries(
 
 # Link hexl
 if (USE_INTEL_HEXL)
-  #target_link_libraries(helib PUBLIC ${HEXL_HINT_DIR}/libhexl.a)
-  #target_include_directories(helib PUBLIC ${HEXL_HINT_DIR}/../include/hexl/)
-  #include_directories(${HEXL_HINT_DIR}/../include/hexl/)
-#  message("HEXL HEADERS="${HEXL_INCLUDE_DIR})
-#  target_include_directories(helib PUBLIC ${HEXL_INCLUDE_DIR})
-  target_link_libraries(helib PRIVATE HEXL::hexl)
-  get_target_property(
-    HEXL_INCLUDE_DIR
-    HEXL::hexl
-    INTERFACE_INCLUDE_DIRECTORIES)
-  target_include_directories(helib PUBLIC ${HEXL_INCLUDE_DIR})
+  #target_link_libraries(helib PRIVATE HEXL::hexl)
+  #add_dependencies(helib HEXL::hexl)
+  #  get_target_property(
+  #    HEXL_INCLUDE_DIR
+  #    HEXL::hexl
+  #    INTERFACE_INCLUDE_DIRECTORIES)
+  #target_include_directories(helib PRIVATE ${HEXL_INCLUDE_DIR})
+  add_custom_command(TARGET helib POST_BUILD
+    COMMAND ar -x $<TARGET_FILE:HEXL::hexl>
+    COMMAND ar -x $<TARGET_FILE:helib>
+    COMMAND ar -qcs $<TARGET_FILE:helib> *.o
+    COMMAND rm -f *.o
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS helib hexl
+    )
 endif()
 
 # FIX RPATH
