@@ -298,15 +298,18 @@ target_link_libraries(
          # Add pthread if required
          $<$<BOOL:${HELIB_REQUIRES_PTHREADS}>:Threads::Threads>)
 
-# Link hexl
+# Link HEXL
 if (USE_INTEL_HEXL)
-  #target_link_libraries(helib PRIVATE HEXL::hexl)
-  #add_dependencies(helib HEXL::hexl)
-  #  get_target_property(
-  #    HEXL_INCLUDE_DIR
-  #    HEXL::hexl
-  #    INTERFACE_INCLUDE_DIRECTORIES)
-  #target_include_directories(helib PRIVATE ${HEXL_INCLUDE_DIR})
+  add_dependencies(helib HEXL::hexl)
+
+  # Manually add the HEXL include directory
+  get_target_property(
+    HEXL_INCLUDE_DIR
+    HEXL::hexl
+    INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(helib PRIVATE ${HEXL_INCLUDE_DIR})
+
+  # Manually package HEXL with libhelib.a
   add_custom_command(TARGET helib POST_BUILD
     COMMAND ar -x $<TARGET_FILE:HEXL::hexl>
     COMMAND ar -x $<TARGET_FILE:helib>
