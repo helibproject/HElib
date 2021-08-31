@@ -10,7 +10,7 @@
  * limitations under the License. See accompanying LICENSE file.
  */
 
-/* Intel HEXL integration and updated benchmak.
+/* Intel HEXL integration and updated benchmark.
  * Copyright (C) 2021 Intel Corporation
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ static void subtracting_two_ciphertexts(benchmark::State& state, Meta& meta)
 
   meta.data->publicKey.Encrypt(ctxt1, ptxt1);
   meta.data->publicKey.Encrypt(ctxt2, ptxt2);
-  // Benchmark adding ciphertexts
+  // Benchmark subtracting ciphertexts
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt1);
@@ -88,7 +88,7 @@ static void negating_a_ciphertext(benchmark::State& state, Meta& meta)
   helib::Ctxt ctxt(meta.data->publicKey);
 
   meta.data->publicKey.Encrypt(ctxt, ptxt);
-  // Benchmark adding ciphertexts
+  // Benchmark negating a ciphertext
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt);
@@ -107,7 +107,7 @@ static void square_a_ciphertext(benchmark::State& state, Meta& meta)
   helib::Ctxt ctxt(meta.data->publicKey);
 
   meta.data->publicKey.Encrypt(ctxt, ptxt);
-  // Benchmark adding ciphertexts
+  // Benchmark squaring a ciphertext
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt);
@@ -130,7 +130,7 @@ static void multiplying_two_ciphertexts_no_relin(benchmark::State& state, Meta& 
 
   meta.data->publicKey.Encrypt(ctxt1, ptxt1);
   meta.data->publicKey.Encrypt(ctxt2, ptxt2);
-  // Benchmark adding ciphertexts
+  // Benchmark multiplying two ciphertexts without relinearization
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt1);
@@ -153,7 +153,7 @@ static void multiplying_two_ciphertexts(benchmark::State& state, Meta& meta)
 
   meta.data->publicKey.Encrypt(ctxt1, ptxt1);
   meta.data->publicKey.Encrypt(ctxt2, ptxt2);
-  // Benchmark adding ciphertexts
+  // Benchmark multiplying two ciphertexts
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt1);
@@ -172,7 +172,7 @@ static void rotate_a_ciphertext_by1(benchmark::State& state, Meta& meta)
   helib::Ctxt ctxt(meta.data->publicKey);
 
   meta.data->publicKey.Encrypt(ctxt, ptxt);
-  // Benchmark adding ciphertexts
+  // Benchmark rotating a ciphertext
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt);
