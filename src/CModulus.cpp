@@ -382,10 +382,6 @@ void Cmodulus::FFT_aux(NTL::vec_long& y, NTL::zz_pX& tmp) const
       yp[i] = 0;
     }
 
-    // Should be k-1 index, but HEXL expects k index
-    // TODO tidy
-    //long local_root = NTL::zz_pInfo->p_info->RootTable[0][k];
-    //intel::FFTFwd(yp, yp, phim, p, local_root);
     intel::FFTFwd(yp, yp, phim, p);
 
 #else

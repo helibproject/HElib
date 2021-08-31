@@ -349,7 +349,7 @@ DoubleCRT& DoubleCRT::Op(const NTL::ZZ& num, Fun fun)
     long pi = context.ithPrime(i);
     long n = rem(num, pi); // n = num % pi
     NTL::vec_long& row = map[i];
-// TODO Add HEXL
+
 #ifdef USE_INTEL_HEXL
     fun.apply(row.elts(), row.elts(), n, phim, pi);
 #else
