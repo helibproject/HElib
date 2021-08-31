@@ -570,7 +570,7 @@ public:
   // Multiply by another ciphertext
   void multLowLvl(const Ctxt& other, bool destructive = false);
 
-  // This is a high-level mul with relinearisation
+  // This is a high-level mul with relinearization
   Ctxt& operator*=(const Ctxt& other)
   {
     multiplyBy(other);
