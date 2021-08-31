@@ -235,7 +235,7 @@ static void multiply_and_add_two_ciphertexts(benchmark::State& state,
 }
 
 Meta fn;
-Params tiny_params(1024, 1, 360);
+Params tiny_params(/*m=*/1024, /*precision=*/1, /*qbits=*/360);
 HE_BENCH_CAPTURE(adding_two_ciphertexts, tiny_params, fn);
 HE_BENCH_CAPTURE(subtracting_two_ciphertexts,
                  tiny_params,
@@ -257,7 +257,7 @@ HE_BENCH_CAPTURE(multiply_and_add_two_ciphertexts,
                  tiny_params,
                  fn);
 
-Params small_params(16384, 1, 360);
+Params small_params(/*m=*/16384, /*precision=*/1, /*qbits=*/360);
 HE_BENCH_CAPTURE(adding_two_ciphertexts, small_params, fn);
 HE_BENCH_CAPTURE(subtracting_two_ciphertexts,
                  small_params,
@@ -281,7 +281,7 @@ HE_BENCH_CAPTURE(multiply_and_add_two_ciphertexts,
                  small_params,
                  fn);
 
-Params big_params(65536, 1, 440);
+Params big_params(/*m=*/65536, /*precision=*/1, /*qbits=*/440);
 HE_BENCH_CAPTURE(adding_two_ciphertexts, big_params, fn);
 HE_BENCH_CAPTURE(subtracting_two_ciphertexts,
                  big_params,
