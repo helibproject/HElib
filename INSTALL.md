@@ -289,6 +289,8 @@ HEXL.
 
 - `GMP_DIR`: Prefix of the GMP library.
 - `NTL_DIR`: Prefix of the NTL library.
+- `USE_INTEL_HEXL`: Enable the Intel HEXL library.
+- `HEXL_DIR`: Prefix of the Intel HEXL library.
 
 # Using HElib in a project
 
