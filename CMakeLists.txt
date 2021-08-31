@@ -190,6 +190,12 @@ endif ()
 
 # Build optional Intel HEXL library
 if(USE_INTEL_HEXL)
+  # HEXL currently only supported using Library Build
+  if(PACKAGE_BUILD)
+    message(FATAL_ERROR "Intel HEXL currently not supported with Package "
+      "Build. Please use the Library Build when enabling Intel HEXL.")
+  endif(PACKAGE_BUILD)
+
   if(HEXL_DIR)
     set(HEXL_DIR
         ""
