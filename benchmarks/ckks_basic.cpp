@@ -67,7 +67,7 @@ static void subtracting_two_ciphertexts(benchmark::State& state, Meta& meta)
   helib::Ctxt ctxt2(meta.data->publicKey);
   meta.data->publicKey.Encrypt(ctxt1, ptxt1);
   meta.data->publicKey.Encrypt(ctxt2, ptxt2);
-  // Benchmark adding ciphertexts
+// Benchmark subtracting ciphertexts
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt1);
@@ -86,7 +86,7 @@ static void negating_a_ciphertext(benchmark::State& state, Meta& meta)
   helib::Ctxt ctxt(meta.data->publicKey);
 
   meta.data->publicKey.Encrypt(ctxt, ptxt);
-  // Benchmark adding ciphertexts
+// Benchmark negating a ciphertext
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt);
@@ -105,7 +105,7 @@ static void square_a_ciphertext(benchmark::State& state, Meta& meta)
   helib::Ctxt ctxt(meta.data->publicKey);
 
   meta.data->publicKey.Encrypt(ctxt, ptxt);
-  // Benchmark adding ciphertexts
+  // Benchmark squaring a ciphertext
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt);
@@ -147,7 +147,7 @@ static void multiplying_two_ciphertexts_no_relin(benchmark::State& state, Meta& 
 
   meta.data->publicKey.Encrypt(ctxt1, ptxt1);
   meta.data->publicKey.Encrypt(ctxt2, ptxt2);
-  // Benchmark adding ciphertexts
+  // Benchmark multiplying two ciphertexts
   for (auto _ : state) {
     state.PauseTiming();
     auto copy(ctxt1);
