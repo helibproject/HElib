@@ -27,7 +27,7 @@ experimental. Instructions to enable HEXL and link to it are given
 
 - GNU make >= 4.2
 - g++ >= 9.3.0
-- cmake >= 3.19
+- cmake >= 3.16
 
 **macOS environment:**
 
