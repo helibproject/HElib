@@ -21,7 +21,7 @@
 #include "../src/macro.h" // Private header
 // only run if HEXL has been linked.
 #ifdef USE_INTEL_HEXL
-#include "../src/intelExt.h" // Private header
+#include "../src/intelExt.h"       // Private header
 #include "../src/PrimeGenerator.h" // Private header
 
 namespace {
@@ -120,10 +120,11 @@ protected:
   virtual void TearDown() override { helib::cleanupDebugGlobals(); }
 };
 
-struct HEXL_params {
+struct HEXL_params
+{
   const long N; // phim
   const long modulus;
-  HEXL_params(long _N, long _modulus) : N(_N), modulus(_modulus) {} 
+  HEXL_params(long _N, long _modulus) : N(_N), modulus(_modulus) {}
 };
 
 class TestHEXL : public ::testing::TestWithParam<HEXL_params>
@@ -131,9 +132,8 @@ class TestHEXL : public ::testing::TestWithParam<HEXL_params>
 protected:
   const long N; // phim
   const long modulus;
-  
+
   TestHEXL() : N(GetParam().N), modulus(GetParam().modulus) {}
- 
 };
 
 TEST(TestHEXL, hexlInUse)
@@ -144,7 +144,7 @@ TEST(TestHEXL, hexlInUse)
   long modulus = 769;
 
   std::vector<long> args(N);
-  for(size_t i = 0; i < args.size(); ++i){
+  for (size_t i = 0; i < args.size(); ++i) {
     args[i] = i + 1;
   }
   auto expected_outputs = args;
@@ -203,15 +203,15 @@ TEST_P(TestHEXL, CModulusFFT)
   poly.SetLength(2);
   poly[0] = 0;
   poly[1] = 5;
-//  std::cout << "TEST: input " << poly << std::endl;
+  //  std::cout << "TEST: input " << poly << std::endl;
 
   NTL::vec_long transformed;
   cmod.FFT(transformed, poly);
-//  std::cout << "TEST: transformed " << transformed << std::endl;
+  //  std::cout << "TEST: transformed " << transformed << std::endl;
 
   NTL::zz_pX inverse;
   cmod.iFFT(inverse, transformed);
-//  std::cout << "TEST: inverse " << inverse << std::endl;
+  //  std::cout << "TEST: inverse " << inverse << std::endl;
 
   NTL::ZZX inverse_conv = NTL::conv<NTL::ZZX>(inverse);
   EXPECT_EQ(inverse_conv, poly);
@@ -237,7 +237,8 @@ INSTANTIATE_TEST_SUITE_P(typicalParameters, TestHEXL, ::testing::Values(
 
 namespace {
 
-TEST(TestHEXL, noTestRequired) {
+TEST(TestHEXL, noTestRequired)
+{
   std::cout << "***SP bits: " << HELIB_SP_NBITS << '\n';
 }
 

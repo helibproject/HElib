@@ -257,11 +257,13 @@ TEST_P(TestPermutationsBGV, ciphertextPermutationsWithNewAPI)
   EXPECT_EQ(w, v);
 }
 
-// This test is in TestPermutations for now as this is where 
+// This test is in TestPermutations for now as this is where
 // this issue was discovered.
 TEST(TestPermutationsCKKS, ckksFailIfRBitsTooLarge)
 {
-  EXPECT_THROW(helib::ContextBuilder<helib::CKKS>().precision(HELIB_SP_NBITS).build(), helib::InvalidArgument);
+  EXPECT_THROW(
+      helib::ContextBuilder<helib::CKKS>().precision(HELIB_SP_NBITS).build(),
+      helib::InvalidArgument);
 }
 
 TEST_P(TestPermutationsCKKS, ciphertextPermutationsWithNewAPI)
@@ -337,12 +339,15 @@ INSTANTIATE_TEST_SUITE_P(variousParameters,
                                                          /*bits=*/1000,
                                                          /*depth=*/5)));
 
-INSTANTIATE_TEST_SUITE_P(variousParameters,
-                         TestPermutationsCKKS,
-                         ::testing::Values(CKKSParameters(/*m=*/8192,
-                                                          /*precision=*/HELIB_SP_NBITS > 52 ? 52 : HELIB_SP_NBITS - 1,
-                                                          /*bits=*/1000,
-                                                          /*depth=*/5)));
+INSTANTIATE_TEST_SUITE_P(
+    variousParameters,
+    TestPermutationsCKKS,
+    ::testing::Values(CKKSParameters(/*m=*/8192,
+                                     /*precision=*/HELIB_SP_NBITS > 52
+                                         ? 52
+                                         : HELIB_SP_NBITS - 1,
+                                     /*bits=*/1000,
+                                     /*depth=*/5)));
 
 INSTANTIATE_TEST_SUITE_P(
     variousParameters,

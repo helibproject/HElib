@@ -49,13 +49,13 @@ static std::unordered_map<Key, NTT, Hash> table;
 static NTT& initNTT(uint64_t degree, uint64_t q)
 {
   Key key = {degree, q};
-    
+
   { // First Read to see if there is an NTT
     std::shared_lock read_lock(table_mutex);
     auto it = table.find(key);
     if (it != table.end()) { // Found
       return it->second;
-    } 
+    }
   }
 
   { // Didn't find an NTT, lock the table for writing
@@ -64,17 +64,14 @@ static NTT& initNTT(uint64_t degree, uint64_t q)
     auto it = table.find(key);
     if (it != table.end()) { // Found
       return it->second;
-    } else { 
+    } else {
       auto ret = table.emplace(key, NTT(degree, q));
       return (ret.first)->second; // The NTT object just created.
     }
   }
 }
 
-void FFTFwd(long* output,
-            const long* input,
-            long n,
-            long q) 
+void FFTFwd(long* output, const long* input, long n, long q)
 {
   initNTT(/*degree=*/n, /*modulus=*/q)
       .ComputeForward(reinterpret_cast<uint64_t*>(output),
@@ -84,10 +81,7 @@ void FFTFwd(long* output,
   return;
 }
 
-void FFTRev1(long* output,
-             const long* input,
-             long n,
-             long q) 
+void FFTRev1(long* output, const long* input, long n, long q)
 {
   initNTT(/*degree=*/n, /*modulus=*/q)
       .ComputeInverse(reinterpret_cast<uint64_t*>(output),

@@ -48,7 +48,7 @@ private:
 
 public:
   const static long B = 3;
-  
+
   PrimeGenerator(long _len, long _m) : len(_len), m(_m)
   {
     assertInRange<InvalidArgument>(len,
@@ -79,8 +79,8 @@ public:
     // [ (1-1/2^B)*2^len-1)/(2^k*m), (2^len-1)/(2^k*m) ).
     // For k satisfying 2^{len-B} >= 2^k*m, this interval is
     // contains at least one integer.
-    // It is equivalent to consider the interval of integers 
-    // [t_lower_bound, t_upper_bound), 
+    // It is equivalent to consider the interval of integers
+    // [t_lower_bound, t_upper_bound),
     // where t_lower_bound = ceil(((1-1/2^B)*2^len-1)/(2^k*m))
     // and t_upper_bound = ceil((2^len-1)/(2^k*m)).
 

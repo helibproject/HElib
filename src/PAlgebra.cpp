@@ -430,16 +430,15 @@ double calcPolyNormBnd(long m)
   return max_norm;
 }
 
-PAlgebraModDerived<PA_cx>::PAlgebraModDerived(
-  const PAlgebra& palg, long _r) : 
-  zMStar(palg), r(_r)
+PAlgebraModDerived<PA_cx>::PAlgebraModDerived(const PAlgebra& palg, long _r) :
+    zMStar(palg), r(_r)
 {
-    assertInRange<InvalidArgument>(r,
-                                   1l,
-                                   (long)HELIB_SP_NBITS,
-                                   "Invalid bit precision r: '" + std::to_string(r) + "'");
+  assertInRange<InvalidArgument>(r,
+                                 1l,
+                                 (long)HELIB_SP_NBITS,
+                                 "Invalid bit precision r: '" +
+                                     std::to_string(r) + "'");
 }
-
 
 PAlgebra::PAlgebra(long mm,
                    long pp,

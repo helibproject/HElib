@@ -832,7 +832,8 @@ static long ctxtPrimeSize(long nBits)
   // at least nBits bits.
 
   long targetSize = HELIB_SP_NBITS;
-  while (10 * (targetSize - 1) >= 9 * HELIB_SP_NBITS && (targetSize - 1) >= 30 &&
+  while (10 * (targetSize - 1) >= 9 * HELIB_SP_NBITS &&
+         (targetSize - 1) >= 30 &&
          ((targetSize - 1) - bit_loss) * nPrimes >= nBits)
     targetSize--;
 
