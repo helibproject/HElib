@@ -79,31 +79,32 @@ public:
     // [ (1-1/2^B)*2^len-1)/(2^k*m), (2^len-1)/(2^k*m) ).
     // For k satisfying 2^{len-B} >= 2^k*m, this interval is
     // contains at least one integer.
-    // It is equivalent to consider the interval
-    // of integers [tlb, tub), where tlb = ceil(((1-1/2^B)*2^len-1)/(2^k*m))
-    // and tub = ceil((2^len-1)/(2^k*m)).
+    // It is equivalent to consider the interval of integers 
+    // [t_lower_bound, t_upper_bound), 
+    // where t_lower_bound = ceil(((1-1/2^B)*2^len-1)/(2^k*m))
+    // and t_upper_bound = ceil((2^len-1)/(2^k*m)).
 
-    long tub = divc((1L << len) - 1, m << k);
+    long t_upper_bound = divc((1L << len) - 1, m << k);
 
     for (;;) {
 
       t++;
 
-      if (t >= tub) {
-        // move to smaller value of k, reset t and tub
+      if (t >= t_upper_bound) {
+        // move to smaller value of k, reset t and t_upper_bound
 
         k--;
 
-        long klb = (m % 2 == 0) ? 0 : 1;
+        long k_lower_bound = (m % 2 == 0) ? 0 : 1;
 
         // we run k down to 0  if m is even, and down to 1
         // if m is odd.
 
-        if (k < klb)
+        if (k < k_lower_bound)
           throw RuntimeError("Prime generator ran out of primes");
 
         t = divc((1L << len) - (1L << (len - B)) - 1, m << k);
-        tub = divc((1L << len) - 1, m << k);
+        t_upper_bound = divc((1L << len) - 1, m << k);
       }
 
       if (t % 2 == 0)
