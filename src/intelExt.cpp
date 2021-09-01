@@ -164,7 +164,6 @@ void EltwiseMultMod(long* result,
                     long modulus)
 {
 
-  std::vector<uint64_t> scalar_array(n, scalar);
   intel::hexl::EltwiseFMAMod(reinterpret_cast<uint64_t*>(result),
                              reinterpret_cast<const uint64_t*>(operand),
                              scalar,
