@@ -1,7 +1,7 @@
 Release Changes
 ===============
 
-HElib 2.2.0, August 2021
+HElib 2.2.0, September 2021
 =========================
 (tagged as v2.2.0)
 

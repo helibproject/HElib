@@ -1,9 +1,9 @@
 # Building and installing HElib
 
 The current HElib build, install, and regression tests suite have been built
-and tested on Ubuntu 20.04, Fedora 33, CentOS 8.2, and macOS Catalina
->=10.15.7. Previous versions have also included Ubuntu 18.04, Fedora 32, CentOS
-7.8, macOS Mojave >=10.14.6.
+and tested on Ubuntu 20.04 and macOS Catalina
+>=10.15.7. Previous versions have also included Ubuntu 18.04, Fedora 33, CentOS
+8.2, macOS Mojave >=10.14.6.
 
 There are two different ways to build and install HElib. The first one will
 automatically download and build the GMP and NTL dependencies and pack the
