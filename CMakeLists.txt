@@ -10,7 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. See accompanying LICENSE file.
 
-cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+# Enforce CMake v3.20 on MacOS else set minimum to v3.16
+if (APPLE)
+  cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
+else ()
+  cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+endif ()
 
 project(helib_superbuild LANGUAGES C CXX)
 
