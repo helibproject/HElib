@@ -163,14 +163,15 @@ void EltwiseMultMod(long* result,
                     long n,
                     long modulus)
 {
-  // HEXL currently doesnt have a scalar multiply.
+
   std::vector<uint64_t> scalar_array(n, scalar);
-  intel::hexl::EltwiseMultMod(reinterpret_cast<uint64_t*>(result),
-                              reinterpret_cast<const uint64_t*>(operand),
-                              scalar_array.data(),
-                              n,
-                              modulus,
-                              /*input_mod_factor=*/1);
+  intel::hexl::EltwiseFMAMod(reinterpret_cast<uint64_t*>(result),
+                             reinterpret_cast<const uint64_t*>(operand),
+                             scalar,
+                             nullptr,
+                             n,
+                             modulus,
+                             /*input_mod_factor=*/1);
 }
 
 } // namespace intel
