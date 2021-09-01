@@ -37,8 +37,9 @@ struct Hash
 {
   size_t operator()(const Key& key) const
   {
-    return std::hash<uint64_t>{}(key.degree) ^
-           (std::hash<uint64_t>{}(key.q) << 1);
+    // Using the popular hash_combine method of boost.
+    return key.degree ^
+           (key.q + 0x9e3779b9 + (key.degree << 6) + (key.degree >> 2));
   }
 };
 
