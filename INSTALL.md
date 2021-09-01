@@ -226,7 +226,7 @@ First you must download and build HEXL from source.  Currently, HElib only
 works with HEXL version 1.2. Using git this would be
 
 ```bash
-git clone https://github.com/intel/hexl --branch 1.2.0
+git clone https://github.com/intel/hexl --branch 1.2.1
 ```
 Follow the instructions for HEXL installation in the README.md for all
 available options.  Note previous versions of HEXL requires the deprecated
