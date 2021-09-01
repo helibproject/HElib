@@ -76,7 +76,7 @@ void FFTFwd(long* output, const long* input, long n, long q)
   initNTT(/*degree=*/n, /*modulus=*/q)
       .ComputeForward(reinterpret_cast<uint64_t*>(output),
                       reinterpret_cast<const uint64_t*>(input),
-                      /*input_mod_factor=*/4,
+                      /*input_mod_factor=*/1,
                       /*output_mod_factor=*/1);
   return;
 }
@@ -86,7 +86,7 @@ void FFTRev1(long* output, const long* input, long n, long q)
   initNTT(/*degree=*/n, /*modulus=*/q)
       .ComputeInverse(reinterpret_cast<uint64_t*>(output),
                       reinterpret_cast<const uint64_t*>(input),
-                      /*input_mod_factor=*/2,
+                      /*input_mod_factor=*/1,
                       /*output_mod_factor=*/1);
   return;
 }
