@@ -211,7 +211,7 @@ if(USE_INTEL_HEXL)
   endif()
 
   # Set minimum version of HEXL
-  set(HEXL_MIN_VERSION 1.2.0)
+  set(HEXL_MIN_VERSION 1.2.1)
 
   find_package(HEXL HINTS ${HEXL_DIR} REQUIRED)
 
