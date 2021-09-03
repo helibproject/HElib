@@ -1,32 +1,32 @@
 # Building and installing HElib
 
 The current HElib build, install, and regression tests suite have been built
-and tested on Ubuntu 20.04 and macOS Catalina
->=10.15.7. Previous versions have also included Ubuntu 18.04, Fedora 33, CentOS
-8.2, macOS Mojave >=10.14.6.
+and tested on Ubuntu 20.04 and macOS Catalina >=10.15.7. Previous versions 
+have also included Ubuntu 18.04, Fedora 33, CentOS 8.2, macOS Mojave >=10.14.6.
 
 There are two different ways to build and install HElib. The first one will
 automatically download and build the GMP and NTL dependencies and pack the
 libraries in a relocatable folder. The second way, instead, requires the
 dependencies to be installed by you and available in the system.
 
-Intel [HEXL](https://github.com/intel/hexl) acceleration library for
-homomorphic encryption support has been added. This should be treated as
-experimental. Instructions to enable HEXL and link to it are given
+This release of HElib has experimental support for the Intel® [HEXL](https://github.com/intel/hexl) 
+acceleration library for homomorphic encryption that exploits Intel® Advanced Vector Extensions 512. 
+Instructions to enable and link to HEXL are given 
 [below](#enabling-and-linking-to-intel-hexl).
 
-**Please read these instructions in full to better choose the type of build that
- is best for you.**
+```diff
+- Please read these instructions in full to better choose the type of build that is best for you.
+```
 
 ## General prerequisites
 
 - pthreads
 - git >= 2.27 (required to build and run the HElib test suite)
 
-**Linux environment:**
+**Default Linux environment:**
 
 - GNU make >= 4.2
-- g++ >= 9.3.0
+- g++ >= 9.3.0  (recommended g++ 10.3.0)
 - cmake >= 3.16
 
 **macOS environment:**
@@ -39,7 +39,7 @@ experimental. Instructions to enable HEXL and link to it are given
   packages)
 - GNU make >= 3.81
 
-**For development:**
+**For HElib development:**
 
 - clang-format >= 9.0.0 (available with your linux distribution and for macOS
   from [MacPorts Project](https://www.macports.org/) and
@@ -177,8 +177,8 @@ Many distributions come with GMP pre-installed. If not, you can install GMP as
 follows.
 
 1. Download GMP from [http://www.gmplib.org](http://www.gmplib.org) -- make sure
-   that you get GMP >=6.0.0 (current version is 6.2.0).
-2. Decompress and cd into the gmp directory (e.g., `gmp-6.2.0`).
+   that you get GMP >=6.2.0 (current version is 6.2.1).
+2. Decompress and cd into the gmp directory (e.g., `gmp-6.2.1`).
 3. GMP is compiled in the standard unix way:
 
 ```bash
@@ -196,9 +196,9 @@ step 3.
 
 You can install NTL as follows:
 
-1. Download NTL >=11.4.3 (current version is 11.4.3) from
-   [http://www.shoup.net/ntl/download.html](http://www.shoup.net/ntl/download.html)
-2. Decompress and cd into the directory, e.g., `ntl-11.4.3/src`
+1. Download NTL >=11.5.1 from
+   [https://libntl.org/download.html](https://libntl.org/download.html)
+2. Decompress and cd into the directory, e.g., `ntl-11.5.1/src`
 3. NTL is configured, built and installed in the standard Unix way (but remember
    to specify the following flags to `configure`):
 
@@ -216,14 +216,16 @@ step 3.
 **NOTE**: if linking against a non-system GMP, pass `GMP_PREFIX=<path/to/gmp>`
 to the `./configure` step.
 
-## Enabling and linking to Intel HEXL
+## Enabling and linking to Intel® HEXL
+**NOTE:** HEXL is only supported on the processors with AVX512DQ and AVX512-IFMA
+such as the 3rd generation Intel® Xeon® or the 11th generation Intel® Core®
 
 **NOTE:** It is currently only possible to use HEXL with HElib when using the
 library build and when building HElib as a static library. i.e.
 `-DPACKAGE_BUILD=OFF` and `-DBUILD_SHARED=OFF`.
 
 First you must download and build HEXL from source.  Currently, HElib only
-works with HEXL version 1.2. Using git this would be
+works with HEXL version >= 1.2.1 Using git this would be
 
 ```bash
 git clone https://github.com/intel/hexl --branch 1.2.1
