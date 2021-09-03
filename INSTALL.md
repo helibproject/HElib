@@ -115,7 +115,7 @@ some other system-wide path, step 5 may require `sudo` privileges.
 This option involves building HElib on its own, linking against pre-existing
 dependencies (NTL and GMP) on the system.  In this way, the HElib library can be
 moved around, but its dependencies (NTL and GMP) cannot, as they are absolute
-paths.  For this option, you must build GMP >=6.0.0 and NTL >=11.4.3 yourself.
+paths.  For this option, you must build GMP >=6.2.1 and NTL >=11.5.1 yourself.
 For details on how to do this, please see the section on building dependencies
 later.  It is assumed throughout this installation option that the environment
 variables `$GMPDIR` and `$NTLDIR` are set to point to the installation
