@@ -33,7 +33,7 @@ Instructions to enable and link to HEXL are given
 
 - Apple clang >= 12.0.0 (available with the latest Xcode for the tested versions of macOS)
 - Xcode Command Line Tools (can be installed with the command `xcode-select
-  --install` in a teminal)
+  --install` in a terminal)
 - cmake >= 3.20 (available from [CMake](https://cmake.org/) or [MacPorts
   Project](https://www.macports.org/) and [Homebrew](https://brew.sh/) as
   packages)

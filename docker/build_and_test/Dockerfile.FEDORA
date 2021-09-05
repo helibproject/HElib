@@ -1,4 +1,4 @@
-# Recipe for an HE-ready Fedora 33 docker
+# Recipe for an HE-ready Fedora 34 docker
 FROM fedora:34
 
 # Install general HElib pre-requisites
