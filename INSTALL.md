@@ -217,8 +217,8 @@ step 3.
 to the `./configure` step.
 
 ## Enabling and linking to Intel® HEXL
-**NOTE:** HEXL is only supported on the processors with AVX512DQ and AVX512-IFMA
-such as the 3rd generation Intel® Xeon® or the 11th generation Intel® Core®
+**NOTE:** HElib with HEXL acceleration is only supported on the processors with AVX512DQ and 
+AVX512-IFMA such as the 3rd generation Intel® Xeon® or the 11th generation Intel® Core®
 
 **NOTE:** It is currently only possible to use HEXL with HElib when using the
 library build and when building HElib as a static library. i.e.
