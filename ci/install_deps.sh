@@ -16,18 +16,19 @@ set -xe
 cd $HOME
 
 if [ "${PACKAGE_BUILD}" == "OFF" ]; then
-  if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-    if [ "${TRAVIS_DIST}" == "bionic" ]; then
-      sudo apt-get -yq --no-install-suggests --no-install-recommends $(travis_apt_get_options) install m4 libgmp-dev
-      curl -O "https://libntl.org/ntl-11.4.3.tar.gz"
-      tar --no-same-owner -xf ntl-11.4.3.tar.gz
-      cd "$HOME/ntl-11.4.3/src"
-      ./configure SHARED=on NTL_GMP_LIP=on NTL_THREADS=on NTL_THREAD_BOOST=on
-      make -j4
-      sudo make install
-    else
-      sudo apt-get -yq --no-install-suggests --no-install-recommends $(travis_apt_get_options) install libgmp-dev libntl-dev
-    fi
+  if [ "${RUNNER_OS}" == "Linux" ]; then
+  # if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+    # if [ "${TRAVIS_DIST}" == "bionic" ]; then
+    #   sudo apt-get -yq --no-install-suggests --no-install-recommends $(travis_apt_get_options) install m4 libgmp-dev
+    #   curl -O "https://libntl.org/ntl-11.4.3.tar.gz"
+    #   tar --no-same-owner -xf ntl-11.4.3.tar.gz
+    #   cd "$HOME/ntl-11.4.3/src"
+    #   ./configure SHARED=on NTL_GMP_LIP=on NTL_THREADS=on NTL_THREAD_BOOST=on
+    #   make -j4
+    #   sudo make install
+    # else
+      sudo apt-get -yq --no-install-suggests --no-install-recommends install libgmp-dev libntl-dev
+    # fi
   elif [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     # GMP will be installed as a dependency to NTL (if it is not already present)
     brew install ntl

@@ -1,0 +1,42 @@
+name: helib
+on:
+  # By default this will run when the activity type is "opened", "synchronize",
+  # or "reopened".
+  pull_request:
+    branches:
+      - master
+  # Manually run this workflow on any specified branch.
+  workflow_dispatch:
+
+###################
+# Define env vars #
+###################
+env:
+  INSTALL_PREFIX: ./
+
+jobs:
+  library_build:
+    runs-on: ubuntu-20.04
+    name: 'package_build=${{ matrix.package_build }} hexl=${{ matrix.hexl }}'
+    environment: intel_workflow
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        package_build: [ON, OFF]
+        hexl: [ON, OFF]
+        # exclude: # Skip debug on Mac. TODO: add Debug mode
+          # - os: macos-latest
+            # build_type: Debug
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          set -x
+          echo "::set-env name=PACKAGE_BUILD::${{matrix.package_build}}"
+          env
+          ./ci/install_deps.sh
+          ./ci/build_install_lib.sh "${{ matrix.package_build }}" " ${{ env.INSTALL_PREFIX }}"
+          ./ci/test_lib.sh
+          ./ci/build_test_consumer.sh "examples" "${{ matrix.package_build }}" " ${{ env.INSTALL_PREFIX }}"
+          ./ci/build_test_consumer.sh "utils" "${{ matrix.package_build }}" " ${{ env.INSTALL_PREFIX }}"
