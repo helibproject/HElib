@@ -94,12 +94,24 @@ Matrix<Ctxt> calculateMasks(const EncryptedArray& ea,
   mask = mask.columns(columns);
   mask.inPlaceTranspose();
 
-  (mask -= database)
+  // FIXME: Avoid deep copy
+  // Ptxt Query
+  if constexpr (std::is_same_v<TXT, Ptxt<BGV>>) {
+    auto tmp = database.deepCopy();
+    (tmp -= mask)
       .apply([&](auto& entry) { mapTo01(ea, entry); })
       .apply([](auto& entry) { entry.negate(); })
       .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
 
-  return mask;
+    return tmp;
+  } else { // Ctxt Query
+    (mask -= database)
+      .apply([&](auto& entry) { mapTo01(ea, entry); })
+      .apply([](auto& entry) { entry.negate(); })
+      .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
+
+    return mask;
+  }
 }
 
 /**
