@@ -581,8 +581,8 @@ public:
    * match or no match respectively.
    **/
   template <typename TXT2>
-  Matrix<TXT2> contains(const Query_t& lookup_query,
-                        const Matrix<TXT2>& query_data) const;
+  auto contains(const Query_t& lookup_query,
+                const Matrix<TXT2>& query_data) const;
 
   // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
   /**
@@ -595,8 +595,8 @@ public:
    * @return A `Matrix<TXT2>` containing a score on weighted matches.
    **/
   template <typename TXT2>
-  Matrix<TXT2> getScore(const Query_t& weighted_query,
-                        const Matrix<TXT2>& query_data) const;
+  auto getScore(const Query_t& weighted_query,
+                const Matrix<TXT2>& query_data) const;
 
   // TODO - correct name?
   /**
@@ -612,7 +612,7 @@ private:
 
 template <typename TXT>
 template <typename TXT2>
-inline Matrix<TXT2> Database<TXT>::contains(
+inline auto Database<TXT>::contains(
     const Query_t& lookup_query,
     const Matrix<TXT2>& query_data) const
 {
@@ -631,7 +631,7 @@ inline Matrix<TXT2> Database<TXT>::contains(
 
 template <typename TXT>
 template <typename TXT2>
-inline Matrix<TXT2> Database<TXT>::getScore(
+inline auto Database<TXT>::getScore(
     const Query_t& weighted_query,
     const Matrix<TXT2>& query_data) const
 {
