@@ -605,6 +605,8 @@ public:
    **/
   long columns() { return data.dims(1); }
 
+  Matrix<TXT>& getData();
+
 private:
   Matrix<TXT> data;
   std::shared_ptr<const Context> context;
@@ -643,6 +645,12 @@ inline auto Database<TXT>::getScore(
                                 mask);
 
   return result;
+}
+
+template <typename TXT>
+inline Matrix<TXT>& Database<TXT>::getData()
+{
+  return data;
 }
 
 } // namespace helib
