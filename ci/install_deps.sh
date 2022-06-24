@@ -54,7 +54,7 @@ if [ "${RUNNER_OS}" == "ubuntu-20.04" ]; then
 fi
 
 if [ "${RUNNER_OS}" == "macos-latest" ]; then
-  brew install ntl
+  brew install ntl bats-core
 fi
 
 cd "$HOME"
