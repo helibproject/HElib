@@ -198,25 +198,12 @@ class ColNumber;
 /**
  * @brief A class for holding a shared pointer to an `Expr` object.
  **/
-//using QueryExpr = std::shared_ptr<Expr>;
 class QueryExpr
 {
   public:
   std::shared_ptr<Expr> exp;
   QueryExpr(std::shared_ptr<Expr> p) : exp(p) {} 
 };
-
-/**
- * @brief Utility function for creating a  QueryExpr for a specified column
- * in a query.
- * @param cl The index of the column to be used in the query.
- * @return QueryExpr with the specified `ColNumber` as the Expr.
- **/
-inline QueryExpr makeQueryExpr(int cl)
-{
-  ColNumber col(cl);
-  return QueryExpr(std::make_shared<ColNumber>(col));
-}
 
 /**
  * @struct Expr
@@ -252,6 +239,19 @@ public:
 private:
   int column;
 };
+
+/**
+ * @brief Utility function for creating a  QueryExpr for a specified column
+ * in a query.
+ * @param cl The index of the column to be used in the query.
+ * @return QueryExpr with the specified `ColNumber` as the Expr.
+ **/
+inline QueryExpr makeQueryExpr(int cl)
+{
+  ColNumber col(cl);
+  return QueryExpr(std::make_shared<ColNumber>(col));
+}
+
 
 /**
  * @class And
