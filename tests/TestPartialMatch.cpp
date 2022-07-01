@@ -705,6 +705,23 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesPostFix)
   EXPECT_EQ("0 1 2 3 && || &&", res->eval());
 }
 
+TEST(TestPartialMatch, containsOrFlagInBuild)
+{
+  const helib::QueryExpr& name = helib::makeQueryExpr(0);
+  const helib::QueryExpr& age = helib::makeQueryExpr(1);
+  const helib::QueryExpr& height = helib::makeQueryExpr(2);
+  const helib::QueryExpr& weight = helib::makeQueryExpr(3);
+
+  helib::QueryBuilder res((name || age) && height);
+
+  long columns = 4;
+
+  helib::Query_t query = res.build(columns);
+
+  EXPECT_EQ(query.containsOR, true);
+
+}
+
 TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
 {
   const helib::QueryExpr& name = helib::makeQueryExpr(0);
