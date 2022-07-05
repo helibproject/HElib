@@ -701,8 +701,7 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesPostFix)
   const helib::QueryExpr& height = helib::makeQueryExpr(2);
   const helib::QueryExpr& weight = helib::makeQueryExpr(3);
 
-  helib::QueryExpr res((name && age) ||
-                       height); // the QueryExpr x = y no longer works
+  helib::QueryExpr res = ((name && age) || height); 
 
   res = name || age || height;
   EXPECT_EQ("0 1 || 2 ||", res.exp->eval());
