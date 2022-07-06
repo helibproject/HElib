@@ -710,7 +710,6 @@ TEST(TestPartialMatch, containsOrFlagInBuild)
   const helib::QueryExpr& name = helib::makeQueryExpr(0);
   const helib::QueryExpr& age = helib::makeQueryExpr(1);
   const helib::QueryExpr& height = helib::makeQueryExpr(2);
-  const helib::QueryExpr& weight = helib::makeQueryExpr(3);
 
   helib::QueryBuilder res((name || age) && height);
 
