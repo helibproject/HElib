@@ -978,6 +978,48 @@ TEST_P(TestPartialMatch, scoringWorksWithEncryptedDatabaseAndQueryAPIs)
     }
 }
 
+TEST(TestPartialMatch, TestInfixToPolishConversion) {
+  std::vector<std::string> input_exprs;
+  input_exprs.push_back("a&&b");
+  input_exprs.push_back("a||b");
+  input_exprs.push_back("(b||c)");
+  input_exprs.push_back("a&&(b||c)");
+  input_exprs.push_back("(a&&b)||c");
+  input_exprs.push_back("(a&&b)||(c&&d)");
+  input_exprs.push_back("(a&&b)||((c&&d)&&(e||f))");
+  input_exprs.push_back("a&b");
+  input_exprs.push_back("a|b");
+  input_exprs.push_back("(b|c)");
+  input_exprs.push_back("a&(b|c)");
+  input_exprs.push_back("(a&b)|c");
+  input_exprs.push_back("(a&b)|(c&d)");
+  input_exprs.push_back("(a&b)|((c&d)&(e|f))");
+  input_exprs.push_back("aa|bb");
+  input_exprs.push_back("(aa&&bb)||cc");
+
+  std::vector<std::string> expected;
+  expected.push_back("ab&&");
+  expected.push_back("ab||");
+  expected.push_back("bc||");
+  expected.push_back("abc||&&");
+  expected.push_back("ab&&c||");
+  expected.push_back("ab&&cd&&||");
+  expected.push_back("ab&&cd&&ef||&&||");
+  expected.push_back("ab&");
+  expected.push_back("ab|");
+  expected.push_back("bc|");
+  expected.push_back("abc|&");
+  expected.push_back("ab&c|");
+  expected.push_back("ab&cd&|");
+  expected.push_back("ab&cd&ef|&|");
+  expected.push_back("aabb|");
+  expected.push_back("aabb&&cc||");
+
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(helib::convert(input_exprs[i]), expected[i]);
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(variousParameters,
                          TestPartialMatch,
                          ::testing::Values(BGVParameters(1024, 1087, 1, 700)));

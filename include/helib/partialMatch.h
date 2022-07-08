@@ -398,6 +398,49 @@ struct Query_t
   {}
 };
 
+
+/**
+ * @brief Free function that converts a logical expression in infix notation to
+ * reverse polish notation.
+ * @param s Input string in infix notation.
+ * @return The string in polish notation.
+ **/
+inline std::string convert(std::string s) {
+  std::string ret = "";
+  std::stack<char> st;
+  st.push('('); // push open bracket onto stack
+  s += ")";     // append closing bracket to string
+
+  // TODO: What about the case of operands of size < 1? eg. aa || ab
+  // Do we care about spaces?
+  for (const auto& c : s) {
+    switch(c) {
+      case '&':
+        st.push(c);
+        break;
+      case '|':
+        st.push(c);
+        break;
+      case '(':
+        st.push(c);
+        break;
+      case ')':
+        while(st.top() != '(') {
+          ret += st.top();
+          st.pop();
+        }
+        st.pop(); // pop open bracket '('
+        break;
+      default: // operands
+        ret += c;
+        break;
+    }
+  }
+
+  return ret;
+}
+
+
 /**
  * @class QueryBuilder
  * @brief An object used to construct a `Query_t` object from a logical
