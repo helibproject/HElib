@@ -710,15 +710,18 @@ TEST(TestPartialMatch, containsOrFlagInBuild)
   const helib::QueryExpr& name = helib::makeQueryExpr(0);
   const helib::QueryExpr& age = helib::makeQueryExpr(1);
   const helib::QueryExpr& height = helib::makeQueryExpr(2);
-
-  helib::QueryBuilder res((name || age) && height);
-
   long columns = 4;
-
-  helib::Query_t query = res.build(columns);
-
+  helib::QueryBuilder res1((name || age) && height);
+  helib::Query_t query = res1.build(columns);
   EXPECT_EQ(query.containsOR, true);
 
+  helib::QueryBuilder res2(height && (name || age));
+  query = res2.build(columns);
+  EXPECT_EQ(query.containsOR, true);
+
+  helib::QueryBuilder res3(height && name && age);
+  query = res3.build(columns);
+  EXPECT_EQ(query.containsOR, false);
 }
 
 TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
