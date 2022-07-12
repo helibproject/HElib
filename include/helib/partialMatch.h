@@ -99,16 +99,16 @@ Matrix<Ctxt> calculateMasks(const EncryptedArray& ea,
   if constexpr (std::is_same_v<TXT, Ptxt<BGV>>) {
     auto tmp = database.deepCopy();
     (tmp -= mask)
-      .apply([&](auto& entry) { mapTo01(ea, entry); })
-      .apply([](auto& entry) { entry.negate(); })
-      .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
+        .apply([&](auto& entry) { mapTo01(ea, entry); })
+        .apply([](auto& entry) { entry.negate(); })
+        .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
 
     return tmp;
   } else { // Ctxt Query
     (mask -= database)
-      .apply([&](auto& entry) { mapTo01(ea, entry); })
-      .apply([](auto& entry) { entry.negate(); })
-      .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
+        .apply([&](auto& entry) { mapTo01(ea, entry); })
+        .apply([](auto& entry) { entry.negate(); })
+        .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
 
     return mask;
   }
@@ -380,7 +380,8 @@ struct Query_t
           const std::vector<Matrix<long>>& weights,
           const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 
   /**
    * @brief Constructor.
@@ -395,51 +396,9 @@ struct Query_t
           std::vector<Matrix<long>>&& weights,
           bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
-};
-
-
-/**
- * @brief Free function that converts a logical expression in infix notation to
- * reverse polish notation.
- * @param s Input string in infix notation.
- * @return The string in polish notation.
- **/
-inline std::string convert(std::string s) {
-  std::string ret = "";
-  std::stack<char> st;
-  st.push('('); // push open bracket onto stack
-  s += ")";     // append closing bracket to string
-
-  // TODO: What about the case of operands of size < 1? eg. aa || ab
-  // Do we care about spaces?
-  for (const auto& c : s) {
-    switch(c) {
-      case '&':
-        st.push(c);
-        break;
-      case '|':
-        st.push(c);
-        break;
-      case '(':
-        st.push(c);
-        break;
-      case ')':
-        while(st.top() != '(') {
-          ret += st.top();
-          st.pop();
-        }
-        st.pop(); // pop open bracket '('
-        break;
-      default: // operands
-        ret += c;
-        break;
-    }
+  {
   }
-
-  return ret;
-}
-
+};
 
 /**
  * @class QueryBuilder
@@ -459,6 +418,13 @@ public:
    * @note The expression is evaluated to reverse polish notation.
    **/
   QueryBuilder(const QueryExpr& expr) : query_str(expr->eval()) {}
+
+  /**
+   * @brief Constructor.
+   * @param expr query string to build, in infix notation.
+   * @note The expression is evaluated to reverse polish notation.
+   **/
+  QueryBuilder(const std::string query) : query_str(convertToPostFix(query)) {}
 
   /**
    * @brief Function for building the `Query_t` object from the expression.
@@ -496,8 +462,94 @@ public:
     return Query_t(std::move(Fs), std::move(mus), std::move(taus), containsOR);
   }
 
+  // function to return query_str
+  std::string getQueryString() const { return query_str; }
+
 private:
   std::string query_str;
+  /**
+   * @brief Free function that converts a logical expression in infix notation
+   *to reverse polish notation.
+   * @param s Input string in infix notation. Can have nonbracketed clauses,
+   *single operators (|,&), and multichar arguments
+   * @return The string in polish notation with double operators separated by
+   *spaces.
+   **/
+  inline std::string convertToPostFix(std::string s)
+  {
+    std::string ret = "";
+    std::stack<char> st;
+    st.push('('); // push open bracket onto stack
+    s += ")";     // append closing bracket to string
+
+    for (int i = 0; i < s.length(); i++) {
+      char c = s[i];
+      switch (c) {
+      case '&':
+        if (st.top() == '&') {
+          ret += " &&"; // in a nonbinary And clause
+          while (s[i + 1] == '&')
+            i++; // skip next index as it's another &
+        } else {
+          st.push(c);
+          while (s[i + 1] == '&')
+            i++; // skip next index as it's another &
+        }
+        break;
+      case '|':
+        if (st.top() == '&') {
+          ret += " &&"; //&& has higher precedence than ||
+          st.pop();     // pop the &&
+          st.push(c);   // push the ||
+          while (s[i + 1] == '|')
+            i++; // skip next index as it's another |
+        } else if (st.top() == '|') {
+          ret += " ||"; // in a nonbinary or clause
+          while (s[i + 1] == '|')
+            i++; // skip next index as it's another |
+        } else {
+          st.push(c);
+          while (s[i + 1] == '|')
+            i++; // skip next index as it's another |
+        }
+        break;
+      case '(':
+        st.push(c);
+        break;
+      case ')':
+        while (st.top() != '(') {
+          if (st.top() == '&') {
+            ret += " &&";
+            st.pop();
+          } else if (st.top() == '|') {
+            ret += " ||";
+            st.pop();
+          }
+        }
+        st.pop(); // pop open bracket '('
+        break;
+
+      case ' ':
+        break; // not pushing spaces
+      default: // operands
+        if (ret.length() != 0)//string non empty, prepend a space
+          ret += " ";
+        ret += c;
+        while(!((s[i+1]=='&')||(s[i+1]=='|')||(s[i+1]==')')||(s[i+1]==' '))){
+          //multichar operands
+          ret += s[i+1];
+          i++;
+        }
+        break;
+      }
+    }
+
+    assertEq<LogicError>(
+        0UL,
+        st.size(),
+        "error -- after conversion stack should be empty: query badly formed");
+    return ret;
+  }
 
   void printStack(std::stack<vecvec> stack)
   {
@@ -596,7 +648,8 @@ public:
    **/
   Database(const Matrix<TXT>& M, std::shared_ptr<const Context> c) :
       data(M), context(c)
-  {}
+  {
+  }
 
   // FIXME: Should this option really exist?
   /**
@@ -610,7 +663,8 @@ public:
   Database(const Matrix<TXT>& M, const Context& c) :
       data(M),
       context(std::shared_ptr<const helib::Context>(&c, [](auto UNUSED p) {}))
-  {}
+  {
+  }
 
   // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
   /**
@@ -657,9 +711,8 @@ private:
 
 template <typename TXT>
 template <typename TXT2>
-inline auto Database<TXT>::contains(
-    const Query_t& lookup_query,
-    const Matrix<TXT2>& query_data) const
+inline auto Database<TXT>::contains(const Query_t& lookup_query,
+                                    const Matrix<TXT2>& query_data) const
 {
   auto result = getScore<TXT2>(lookup_query, query_data);
 
@@ -676,9 +729,8 @@ inline auto Database<TXT>::contains(
 
 template <typename TXT>
 template <typename TXT2>
-inline auto Database<TXT>::getScore(
-    const Query_t& weighted_query,
-    const Matrix<TXT2>& query_data) const
+inline auto Database<TXT>::getScore(const Query_t& weighted_query,
+                                    const Matrix<TXT2>& query_data) const
 {
   auto mask = calculateMasks(context->getEA(), query_data, this->data);
 
