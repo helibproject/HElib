@@ -196,7 +196,7 @@ struct Expr;
 class ColNumber;
 
 /**
- * @brief A class for holding a shared pointer to an `Expr` object.
+ * @brief A class wrapping a shared pointer to an `Expr` object.
  **/
 class QueryExpr
 {
