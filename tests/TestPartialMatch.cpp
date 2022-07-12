@@ -740,8 +740,8 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
   std::vector<helib::QueryBuilder> qbs =
       {qbExpand0, qbExpand1, qbExpand2, qbExpand3, qbExpand4, qbExpand5};
   long columns = 5;
-
-  std::vector<std::vector<std::vector<long>>> expected_Fs_vector(6);
+  long cases = 6;
+  std::vector<std::vector<std::vector<long>>> expected_Fs_vector(cases);
   std::vector<long> F(columns);
   std::iota(F.begin(), F.end(), 0);
   std::vector<std::vector<long>> Fs(4);
@@ -787,8 +787,11 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
   expected_taus_vector.push_back(expected_taus);
   std::vector<std::vector<long>> expected_mus_vector =
       {{0, 0}, {0}, {0, 0}, {0, 0}, {0, 0, 0, 0}, {0, 0, 0}};
+  EXPECT_EQ(expected_Fs_vector.size(),cases);
+  EXPECT_EQ(expected_taus_vector.size(),cases);
+  EXPECT_EQ(expected_mus_vector.size(),cases);
 
-  for (int j = 0; j < 6; j++) {
+  for (int j = 0; j < cases; j++) {
     helib::Query_t query = qbs[j].build(columns);
     EXPECT_EQ(expected_Fs_vector[j].size(), query.Fs.size()) << "*** j = " << j;
     EXPECT_EQ(expected_mus_vector[j].size(), query.mus.size())
