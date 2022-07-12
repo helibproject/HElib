@@ -979,44 +979,53 @@ TEST_P(TestPartialMatch, scoringWorksWithEncryptedDatabaseAndQueryAPIs)
 }
 
 TEST(TestPartialMatch, TestInfixToPolishConversion) {
-  std::vector<std::string> input_exprs;
-  input_exprs.push_back("a&&b");
-  input_exprs.push_back("a||b");
-  input_exprs.push_back("(b||c)");
-  input_exprs.push_back("a&&(b||c)");
-  input_exprs.push_back("(a&&b)||c");
-  input_exprs.push_back("(a&&b)||(c&&d)");
-  input_exprs.push_back("(a&&b)||((c&&d)&&(e||f))");
-  input_exprs.push_back("a&b");
-  input_exprs.push_back("a|b");
-  input_exprs.push_back("(b|c)");
-  input_exprs.push_back("a&(b|c)");
-  input_exprs.push_back("(a&b)|c");
-  input_exprs.push_back("(a&b)|(c&d)");
-  input_exprs.push_back("(a&b)|((c&d)&(e|f))");
-  input_exprs.push_back("aa|bb");
-  input_exprs.push_back("(aa&&bb)||cc");
-
+  std::vector<helib::QueryBuilder> input_exprs;
+  input_exprs.push_back(helib::QueryBuilder("a&&b"));
+  input_exprs.push_back(helib::QueryBuilder("a||b"));
+  input_exprs.push_back(helib::QueryBuilder("(b||c)"));
+  input_exprs.push_back(helib::QueryBuilder("a&&(b||c)"));
+  input_exprs.push_back(helib::QueryBuilder("(a&&b)||c"));
+  input_exprs.push_back(helib::QueryBuilder("(a&&b)||(c&&d)"));
+  input_exprs.push_back(helib::QueryBuilder("(a&&b)||((c&&d)&&(e||f))"));
+  //single operators: converted to double
+  input_exprs.push_back(helib::QueryBuilder("a&b"));
+  input_exprs.push_back(helib::QueryBuilder("a|b"));
+  input_exprs.push_back(helib::QueryBuilder("(b|c)"));
+  input_exprs.push_back(helib::QueryBuilder("a&(b|c)"));
+  input_exprs.push_back(helib::QueryBuilder("(a&b)|c"));
+  input_exprs.push_back(helib::QueryBuilder("(a&b)|(c&d)"));
+  input_exprs.push_back(helib::QueryBuilder("(a&b)|((c&d)&(e|f))"));
+  input_exprs.push_back(helib::QueryBuilder("aa|bb"));
+  input_exprs.push_back(helib::QueryBuilder("(aa&&bb)||cc"));
+  //test triple operators, spaces, order of precedence, triple char operands
+  input_exprs.push_back(helib::QueryBuilder("a &&& b & c"));
+  input_exprs.push_back(helib::QueryBuilder("(a ||| b & c)"));
+  input_exprs.push_back(helib::QueryBuilder("a && b || c"));
+  input_exprs.push_back(helib::QueryBuilder("aaa || bbc | ac"));
   std::vector<std::string> expected;
-  expected.push_back("ab&&");
-  expected.push_back("ab||");
-  expected.push_back("bc||");
-  expected.push_back("abc||&&");
-  expected.push_back("ab&&c||");
-  expected.push_back("ab&&cd&&||");
-  expected.push_back("ab&&cd&&ef||&&||");
-  expected.push_back("ab&");
-  expected.push_back("ab|");
-  expected.push_back("bc|");
-  expected.push_back("abc|&");
-  expected.push_back("ab&c|");
-  expected.push_back("ab&cd&|");
-  expected.push_back("ab&cd&ef|&|");
-  expected.push_back("aabb|");
-  expected.push_back("aabb&&cc||");
+  expected.push_back("a b &&");
+  expected.push_back("a b ||");
+  expected.push_back("b c ||");
+  expected.push_back("a b c || &&");
+  expected.push_back("a b && c ||");
+  expected.push_back("a b && c d && ||");
+  expected.push_back("a b && c d && e f || && ||");
+  expected.push_back("a b &&");
+  expected.push_back("a b ||");
+  expected.push_back("b c ||");
+  expected.push_back("a b c || &&");
+  expected.push_back("a b && c ||");
+  expected.push_back("a b && c d && ||");
+  expected.push_back("a b && c d && e f || && ||");
+  expected.push_back("aa bb ||");
+  expected.push_back("aa bb && cc ||");
+  expected.push_back("a b && c &&");
+  expected.push_back("a b c && ||");
+  expected.push_back("a b && c ||");
+  expected.push_back("aaa bbc || ac ||");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(helib::convert(input_exprs[i]), expected[i]);
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "failure for i ="<<i<<"\n";
   }
 }
 
