@@ -238,10 +238,10 @@ public:
    * @brief Constructor.
    * @param c The column number.
    **/
-  ColNumber(int c) : column(c) {}
+  ColNumber(long c) : column(c) {}
 
 private:
-  int column;
+  long column;
 };
 
 /**
@@ -250,7 +250,7 @@ private:
  * @param cl The index of the column to be used in the query.
  * @return QueryExpr with the specified `ColNumber` as the Expr.
  **/
-inline QueryExpr makeQueryExpr(int cl)
+inline QueryExpr makeQueryExpr(long cl)
 {
   ColNumber col(cl);
   return QueryExpr(std::make_shared<ColNumber>(col));
@@ -259,17 +259,17 @@ inline QueryExpr makeQueryExpr(int cl)
 
 /**
  * @class And
- * @brief An object representing the logical AND expression which inherits from
+ * @brief An object representing the logical `AND` expression which inherits from
  * `Expr`.
  **/
 class And : public Expr
 {
 public:
   /**
-   * @brief Function for returning the logical AND expression in reverse polish
-   * notation where the AND operation is represented by `&&` and each operand
+   * @brief Function for returning the logical `AND` expression in reverse polish
+   * notation where the `AND` operation is represented by `&&` and each operand
    * is a column number.
-   * @return A string representing the AND expression in reverse polish
+   * @return A string representing the `AND` expression in reverse polish
    * notation.
    **/
   std::string eval() const override
@@ -322,11 +322,11 @@ private:
 };
 
 /**
- * @brief Overloaded operator for creating a QueryExpr to an AND
+ * @brief Overloaded operator for creating a `QueryExpr` to an `AND`
  * expression.
- * @param lhs Left operand of the AND expression.
- * @param rhs Right operand of the AND expression.
- * @return QueryExpr with the AND as the Expr.
+ * @param lhs Left operand of the `AND` expression.
+ * @param rhs Right operand of the `AND` expression.
+ * @return QueryExpr with the `AND` as the Expr.
  **/
 inline QueryExpr operator&&(const QueryExpr& lhs,
                                        const QueryExpr& rhs)
@@ -335,11 +335,11 @@ inline QueryExpr operator&&(const QueryExpr& lhs,
 }
 
 /**
- * @brief Overloaded operator for creating a QueryExpr of an OR
+ * @brief Overloaded operator for creating a `QueryExpr` of an `OR`
  * expression.
- * @param lhs Left operand of the OR expression.
- * @param rhs Right operand of the OR expression.
- * @return QueryExpr with the OR as the Expr.
+ * @param lhs Left operand of the `OR` expression.
+ * @param rhs Right operand of the `OR` expression.
+ * @return `QueryExpr` with the OR as the Expr.
  **/
 inline QueryExpr operator||(const QueryExpr& lhs,
                                       const QueryExpr& rhs)
