@@ -468,6 +468,64 @@ public:
 private:
   std::string query_str;
   /**
+   * @brief Function that converts a space separated infix query with ANDs, ORs,
+   *and NOTs to reverse polish notation.
+   * @param s Input string in infix notation.
+   * @return The string in polish notation.
+   **/
+  inline std::string convertToPostFix(const std::string& s)
+  {
+    std::string ret = "";
+    std::stack<std::string> st;
+    st.push("(");
+    std::istringstream input{s};
+    std::string symbol;
+    while (input >> symbol) {
+      if (!symbol.compare("(")) {
+        st.push("(");
+      } else if (!symbol.compare("AND") && !st.top().compare("&&")) {
+        // in a multiAND clause
+        ret += " &&";
+      } else if (!symbol.compare("AND")) {
+        // not in a multiAND clause
+        st.push("&&");
+      } else if (!symbol.compare("OR") && !st.top().compare("&&")) {
+        //&& has higher precedence than ||
+        ret += " &&";
+        st.pop();
+        st.push("||");
+      } else if (!symbol.compare("OR") && !st.top().compare("||")) {
+        // in a multiOR clause
+        ret += " ||";
+      } else if (!symbol.compare("OR")) {
+        st.push("||");
+      } else if (!symbol.compare(")")) { // empty stack until hit a "("
+        while (st.top().compare("(")) {
+          ret += " " + st.top();
+          st.pop();
+        }
+        st.pop(); // pop the "("
+      } else { // operands
+        if (ret.length() != 0)
+          ret += " ";
+        ret += symbol;
+      }
+    }
+    // empty stack
+    if (st.size() != 0) {
+      while (st.top().compare("(")) {
+        ret += " " + st.top();
+        st.pop();
+      }
+      // after emptying, stack should only have "(" left
+      assertEq<LogicError>(1UL,
+                           st.size(),
+                           "error -- after conversion stack should only "
+                           "contain initial bracket: query badly formed");
+    }
+    return ret;
+  }
+  /**
    * @brief Free function that converts a logical expression in infix notation
    *to reverse polish notation.
    * @param s Input string in infix notation. Can have nonbracketed clauses,
@@ -475,7 +533,7 @@ private:
    * @return The string in polish notation with double operators separated by
    *spaces.
    **/
-  inline std::string convertToPostFix(std::string s)
+  inline std::string convertToPostFixOld(std::string s)
   {
     std::string ret = "";
     std::stack<char> st;
@@ -530,14 +588,15 @@ private:
         break;
 
       case ' ':
-        break; // not pushing spaces
-      default: // operands
-        if (ret.length() != 0)//string non empty, prepend a space
+        break;                 // not pushing spaces
+      default:                 // operands
+        if (ret.length() != 0) // string non empty, prepend a space
           ret += " ";
         ret += c;
-        while(!((s[i+1]=='&')||(s[i+1]=='|')||(s[i+1]==')')||(s[i+1]==' '))){
-          //multichar operands
-          ret += s[i+1];
+        while (!((s[i + 1] == '&') || (s[i + 1] == '|') || (s[i + 1] == ')') ||
+                 (s[i + 1] == ' '))) {
+          // multichar operands
+          ret += s[i + 1];
           i++;
         }
         break;
