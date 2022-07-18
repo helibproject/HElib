@@ -337,10 +337,10 @@ inline std::shared_ptr<Or> operator||(const QueryExpr& lhs,
 }
 
 /**
- * @struct Query_t
+ * @struct QueryType
  * @brief Structure containing all information required for an HE query.
  **/
-struct Query_t
+struct QueryType
 {
   /**
    * @brief `std::vector` of index sets. These index sets specify the indexes
@@ -375,7 +375,7 @@ struct Query_t
    * @param isThereAnOR Boolean value indicating if the query contains an OR
    * operation.
    **/
-  Query_t(const std::vector<std::vector<long>>& index_sets,
+  QueryType(const std::vector<std::vector<long>>& index_sets,
           const std::vector<long>& offsets,
           const std::vector<Matrix<long>>& weights,
           const bool isThereAnOR) :
@@ -391,7 +391,7 @@ struct Query_t
    * @param isThereAnOR Boolean value indicating if the query contains an OR
    * operation.
    **/
-  Query_t(std::vector<std::vector<long>>&& index_sets,
+  QueryType(std::vector<std::vector<long>>&& index_sets,
           std::vector<long>&& offsets,
           std::vector<Matrix<long>>&& weights,
           bool isThereAnOR) :
@@ -402,7 +402,7 @@ struct Query_t
 
 /**
  * @class QueryBuilder
- * @brief An object used to construct a `Query_t` object from a logical
+ * @brief An object used to construct a `QueryType` object from a logical
  * expression.
  **/
 class QueryBuilder
@@ -427,12 +427,12 @@ public:
   QueryBuilder(const std::string query) : query_str(convertToPostFix(query)) {}
 
   /**
-   * @brief Function for building the `Query_t` object from the expression.
+   * @brief Function for building the `QueryType` object from the expression.
    * @param columns The total number of columns in the column set.
-   * @return The resultant `Query_t` object containing information relating to
+   * @return The resultant `QueryType` object containing information relating to
    * the query.
    **/
-  Query_t build(long columns) const
+  QueryType build(long columns) const
   {
 
     // Convert the query to "type 1" by expanding out necessary ORs
@@ -459,7 +459,7 @@ public:
       taus.push_back(std::move(M));
     }
 
-    return Query_t(std::move(Fs), std::move(mus), std::move(taus), containsOR);
+    return QueryType(std::move(Fs), std::move(mus), std::move(taus), containsOR);
   }
 
   // function to return query_str
@@ -737,7 +737,7 @@ public:
    * match or no match respectively.
    **/
   template <typename TXT2>
-  auto contains(const Query_t& lookup_query,
+  auto contains(const QueryType& lookup_query,
                 const Matrix<TXT2>& query_data) const;
 
   // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
@@ -751,7 +751,7 @@ public:
    * @return A `Matrix<TXT2>` containing a score on weighted matches.
    **/
   template <typename TXT2>
-  auto getScore(const Query_t& weighted_query,
+  auto getScore(const QueryType& weighted_query,
                 const Matrix<TXT2>& query_data) const;
 
   // TODO - correct name?
@@ -770,7 +770,7 @@ private:
 
 template <typename TXT>
 template <typename TXT2>
-inline auto Database<TXT>::contains(const Query_t& lookup_query,
+inline auto Database<TXT>::contains(const QueryType& lookup_query,
                                     const Matrix<TXT2>& query_data) const
 {
   auto result = getScore<TXT2>(lookup_query, query_data);
@@ -788,7 +788,7 @@ inline auto Database<TXT>::contains(const Query_t& lookup_query,
 
 template <typename TXT>
 template <typename TXT2>
-inline auto Database<TXT>::getScore(const Query_t& weighted_query,
+inline auto Database<TXT>::getScore(const QueryType& weighted_query,
                                     const Matrix<TXT2>& query_data) const
 {
   auto mask = calculateMasks(context->getEA(), query_data, this->data);

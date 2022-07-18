@@ -717,7 +717,7 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
 
   long columns = 5;
 
-  helib::Query_t query = qb.build(columns);
+  helib::QueryType query = qb.build(columns);
 
   std::vector<std::vector<long>> expected_Fs = {{0, 1, 2, 3, 4},
                                                 {0, 1, 2, 3, 4},
@@ -795,7 +795,7 @@ TEST_P(TestPartialMatch, databaseLookupWorksWithQueryAPI)
 
   long columns = plaintext_database.dims(1);
 
-  helib::Query_t lookup_query(qb.build(columns));
+  helib::QueryType lookup_query(qb.build(columns));
 
   auto plaintext_result = database.contains(lookup_query, plaintext_query_data);
   auto encrypted_result = database.contains(lookup_query, encrypted_query_data);
@@ -863,7 +863,7 @@ TEST_P(TestPartialMatch, scoringWorksWithDatabaseAndQueryAPIs)
                                            {{2}, {1}}};
 
   // Build the query
-  helib::Query_t weighted_query(Fs, mus, taus, false);
+  helib::QueryType weighted_query(Fs, mus, taus, false);
 
   auto plaintext_scores = database.getScore(weighted_query, plaintext_query);
   auto encrypted_scores = database.getScore(weighted_query, encrypted_query);
@@ -950,7 +950,7 @@ TEST_P(TestPartialMatch, scoringWorksWithEncryptedDatabaseAndQueryAPIs)
                                            {{2}, {1}}};
 
   // Build the query
-  helib::Query_t weighted_query(Fs, mus, taus, false);
+  helib::QueryType weighted_query(Fs, mus, taus, false);
 
   auto plaintext_scores =
       plaintext_database.getScore(weighted_query, plaintext_query);
