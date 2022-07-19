@@ -811,7 +811,7 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
   EXPECT_EQ(expected_mus_vector.size(),cases);
 
   for (int j = 0; j < cases; j++) {
-    helib::Query_t query = qbs[j].build(columns);
+    helib::QueryType query = qbs[j].build(columns);
     EXPECT_EQ(expected_Fs_vector[j].size(), query.Fs.size()) << "*** j = " << j;
     EXPECT_EQ(expected_mus_vector[j].size(), query.mus.size())
         << "*** j = " << j;
