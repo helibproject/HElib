@@ -1100,6 +1100,38 @@ TEST(TestPartialMatch, TestInfixToPolishConversion) {
   }
 }
 
+TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
+  std::vector<helib::QueryExpr> input_exprs;
+  input_exprs.push_back(helib::buildQuery("0 AND 1"));
+  input_exprs.push_back(helib::buildQuery("0 OR 1"));
+  input_exprs.push_back(helib::buildQuery("( 1 OR 2 )"));
+  input_exprs.push_back(helib::buildQuery("0 AND ( 1 OR 2 )"));
+  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR 2"));
+  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 )"));
+  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( ( 2 AND 3 ) AND ( 4 OR 5 ) )"));
+  //test spaces, order of precedence, triple char operands
+  input_exprs.push_back(helib::buildQuery("0 AND 1 AND 2"));
+  input_exprs.push_back(helib::buildQuery("( 0 OR 1 AND 2 )"));
+  input_exprs.push_back(helib::buildQuery("0 AND 1 OR 2"));
+  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 ) AND ( 4 OR 5 )"));
+  std::vector<std::string> expected;
+  expected.push_back("0 1 &&");
+  expected.push_back("0 1 ||");
+  expected.push_back("1 2 ||");
+  expected.push_back("0 1 2 || &&");
+  expected.push_back("0 1 && 2 ||");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 3 && 4 5 || && ||");
+  expected.push_back("0 1 && 2 &&");
+  expected.push_back("0 1 2 && ||");
+  expected.push_back("0 1 && 2 ||");
+  expected.push_back("0 1 && 2 3 && 4 5 || && ||");
+
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= "<<i;
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(variousParameters,
                          TestPartialMatch,
                          ::testing::Values(BGVParameters(1024, 1087, 1, 700)));
