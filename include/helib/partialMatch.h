@@ -200,13 +200,13 @@ class ColNumber;
  **/
 class QueryExpr
 {
-  public:
+public:
   std::shared_ptr<Expr> exp;
   /**
    * @brief Constructor.
-   * @param p The shared pointer to wrap into a QueryExpr   
+   * @param p The shared pointer to wrap into a QueryExpr
    **/
-  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {} 
+  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {}
 };
 
 /**
@@ -256,19 +256,18 @@ inline QueryExpr makeQueryExpr(long cl)
   return QueryExpr(std::make_shared<ColNumber>(col));
 }
 
-
 /**
  * @class And
- * @brief An object representing the logical `AND` expression which inherits from
- * `Expr`.
+ * @brief An object representing the logical `AND` expression which inherits
+ *from `Expr`.
  **/
 class And : public Expr
 {
 public:
   /**
-   * @brief Function for returning the logical `AND` expression in reverse polish
-   * notation where the `AND` operation is represented by `&&` and each operand
-   * is a column number.
+   * @brief Function for returning the logical `AND` expression in reverse
+   *polish notation where the `AND` operation is represented by `&&` and each
+   *operand is a column number.
    * @return A string representing the `AND` expression in reverse polish
    * notation.
    **/
@@ -328,8 +327,7 @@ private:
  * @param rhs Right operand of the `AND` expression.
  * @return QueryExpr with the `AND` as the Expr.
  **/
-inline QueryExpr operator&&(const QueryExpr& lhs,
-                                       const QueryExpr& rhs)
+inline QueryExpr operator&&(const QueryExpr& lhs, const QueryExpr& rhs)
 {
   return QueryExpr(std::make_shared<And>(lhs.exp, rhs.exp));
 }
@@ -341,12 +339,103 @@ inline QueryExpr operator&&(const QueryExpr& lhs,
  * @param rhs Right operand of the `OR` expression.
  * @return `QueryExpr` with the OR as the Expr.
  **/
-inline QueryExpr operator||(const QueryExpr& lhs,
-                                      const QueryExpr& rhs)
+inline QueryExpr operator||(const QueryExpr& lhs, const QueryExpr& rhs)
 {
   return QueryExpr(std::make_shared<Or>(lhs.exp, rhs.exp));
 }
+/**
+ * @brief free copy of isNumber to use in this function
+ */
+bool isNumber(const std::string& s)
+{
+  // Positive only
+  return std::all_of(s.begin(), s.end(), ::isdigit);
+}
 
+/**
+ * @brief Construct a `QueryExpr` from a string
+ * @param inFixQuery string of the logical query to build. Space separated,
+ * operators of the form AND, OR
+ * @note uses Djikstra two stack algorithm to construct a QueryExpr
+ **/
+QueryExpr buildQuery(const std::string& inFixQuery)
+{
+  std::stack<char>
+      optorStack; // stack for operators. Making this chars for easy unpacking
+  std::stack<QueryExpr> oprandStack; // stack for operands
+
+  std::istringstream input{inFixQuery + " )"};
+  optorStack.push('(');
+  std::string symbol;
+  while (input >> symbol) {
+    if (!symbol.compare("("))
+      optorStack.push('(');
+    else if (!symbol.compare("AND")) {
+      if (optorStack.top() == '&') { // multiAND clause
+        QueryExpr rhs = oprandStack.top();
+        oprandStack.pop();
+        QueryExpr lhs = oprandStack.top();
+        oprandStack.pop();
+        QueryExpr newop = lhs && rhs;
+        oprandStack.push(newop);
+      } else {
+        optorStack.push('&');
+      }
+    } else if (!symbol.compare("OR")) {
+      if (optorStack.top() == '|') { // multiOR clause
+        QueryExpr rhs = oprandStack.top();
+        oprandStack.pop();
+        QueryExpr lhs = oprandStack.top();
+        oprandStack.pop();
+        QueryExpr newop = lhs || rhs;
+        oprandStack.push(newop);
+      } else if (optorStack.top() == '&') { // AND has precedence
+        QueryExpr rhs = oprandStack.top();
+        oprandStack.pop();
+        QueryExpr lhs = oprandStack.top();
+        oprandStack.pop();
+        QueryExpr newop = lhs && rhs;
+        oprandStack.push(newop);
+        optorStack.pop();
+        optorStack.push('|');
+      } else {
+        optorStack.push('|');
+      }
+    } else if (!symbol.compare(")")) {
+      while (optorStack.top() != '(') {
+        if (optorStack.top() == '&') {
+          QueryExpr rhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr lhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr newop = lhs && rhs;
+          oprandStack.push(newop);
+          optorStack.pop();
+        } else if (optorStack.top() == '|') {
+          QueryExpr rhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr lhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr newop = lhs || rhs;
+          oprandStack.push(newop);
+          optorStack.pop();
+        } else {
+          throw InvalidArgument("unrecognised operator");
+        }
+      }
+      optorStack.pop(); // pop the "("
+    } else {
+      // Should be a number
+      assertTrue(isNumber(symbol), "String is not a number: '" + symbol + "'");
+      oprandStack.push(makeQueryExpr(std::stoi(symbol)));
+    }
+  }
+  assertEq<LogicError>(0UL, optorStack.size(), "optorStack should be empty");
+  assertEq<LogicError>(1UL,
+                       oprandStack.size(),
+                       "oprandStack should have one element");
+  return std::move(oprandStack.top());
+}
 /**
  * @struct QueryType
  * @brief Structure containing all information required for an HE query.
@@ -481,7 +570,7 @@ public:
 
 private:
   std::string query_str;
-  
+
   /**
    * @brief Function that converts a space separated infix query with ANDs, ORs,
    *and NOTs to reverse polish notation.
