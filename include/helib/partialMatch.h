@@ -356,7 +356,7 @@ bool isNumber(const std::string& s)
  * @brief Construct a `QueryExpr` from a string
  * @param inFixQuery string of the logical query to build. Space separated,
  * operators of the form AND, OR
- * @note uses Djikstra two stack algorithm to construct a QueryExpr
+ * @note uses Dijkstra two stack algorithm to construct a QueryExpr
  **/
 QueryExpr buildQuery(const std::string& inFixQuery)
 {
@@ -364,7 +364,17 @@ QueryExpr buildQuery(const std::string& inFixQuery)
       optorStack; // stack for operators. Making this chars for easy unpacking
   std::stack<QueryExpr> oprandStack; // stack for operands
 
-  std::istringstream input{inFixQuery + " )"};
+  // add spaces in the input stream before and after brackets
+  std::stringstream input{" "};
+  for (int i = 0; i < inFixQuery.size(); i++) {
+    if (inFixQuery[i] == '(')
+      input << " ( ";
+    else if (inFixQuery[i] == ')')
+      input << " ) ";
+    else
+      input << inFixQuery[i];
+  }
+  input << " )";
   optorStack.push('(');
   std::string symbol;
   while (input >> symbol) {
@@ -581,8 +591,19 @@ private:
   {
     std::string ret = "";
     std::stack<char> st;
+    // add spaces in the input stream before and after brackets
+    std::stringstream input{" "};
+    for (int i = 0; i < s.size(); i++) {
+      if (s[i] == '(')
+        input << " ( ";
+      else if (s[i] == ')')
+        input << " ) ";
+      else
+        input << s[i];
+    }
+    input << " )";
     st.push('(');
-    std::istringstream input{s + " )"};
+    
     std::string symbol;
     while (input >> symbol) {
       if (!symbol.compare("(")) {
