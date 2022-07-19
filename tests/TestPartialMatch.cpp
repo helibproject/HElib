@@ -1081,6 +1081,9 @@ TEST(TestPartialMatch, TestInfixToPolishConversion) {
   input_exprs.push_back(helib::QueryBuilder("a AND b OR c"));
   input_exprs.push_back(helib::QueryBuilder("aaa OR bbc OR ac"));
   input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR ( c AND d ) AND ( e OR f )"));
+  //test brackets
+  input_exprs.push_back(helib::QueryBuilder("(a AND b) OR (c AND d)"));
+  input_exprs.push_back(helib::QueryBuilder("(a AND (b AND (c AND d)))"));
   std::vector<std::string> expected;
   expected.push_back("a b &&");
   expected.push_back("a b ||");
@@ -1094,6 +1097,8 @@ TEST(TestPartialMatch, TestInfixToPolishConversion) {
   expected.push_back("a b && c ||");
   expected.push_back("aaa bbc || ac ||");
   expected.push_back("a b && c d && e f || && ||");
+  expected.push_back("a b && c d && ||");
+  expected.push_back("a b c d && && &&");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= "<<i;
@@ -1114,6 +1119,9 @@ TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
   input_exprs.push_back(helib::buildQuery("( 0 OR 1 AND 2 )"));
   input_exprs.push_back(helib::buildQuery("0 AND 1 OR 2"));
   input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 ) AND ( 4 OR 5 )"));
+  //test brackets
+  input_exprs.push_back(helib::buildQuery("(0 AND 1) OR (2 AND 3)"));
+  input_exprs.push_back(helib::buildQuery("(0 AND (1 AND (2 AND 3)))"));
   std::vector<std::string> expected;
   expected.push_back("0 1 &&");
   expected.push_back("0 1 ||");
@@ -1126,6 +1134,8 @@ TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
   expected.push_back("0 1 2 && ||");
   expected.push_back("0 1 && 2 ||");
   expected.push_back("0 1 && 2 3 && 4 5 || && ||");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 2 3 && && &&");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= "<<i;
