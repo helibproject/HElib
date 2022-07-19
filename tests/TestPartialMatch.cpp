@@ -712,7 +712,7 @@ TEST(TestPartialMatch, containsOrFlagInBuild)
   const helib::QueryExpr& height = helib::makeQueryExpr(2);
   long columns = 4;
   helib::QueryBuilder res1((name || age) && height);
-  helib::Query_t query = res1.build(columns);
+  helib::QueryType query = res1.build(columns);
   EXPECT_EQ(query.containsOR, true);
 
   helib::QueryBuilder res2(height && (name || age));
