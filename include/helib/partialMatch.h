@@ -376,9 +376,9 @@ struct QueryType
    * operation.
    **/
   QueryType(const std::vector<std::vector<long>>& index_sets,
-          const std::vector<long>& offsets,
-          const std::vector<Matrix<long>>& weights,
-          const bool isThereAnOR) :
+            const std::vector<long>& offsets,
+            const std::vector<Matrix<long>>& weights,
+            const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
   {
   }
@@ -392,9 +392,9 @@ struct QueryType
    * operation.
    **/
   QueryType(std::vector<std::vector<long>>&& index_sets,
-          std::vector<long>&& offsets,
-          std::vector<Matrix<long>>&& weights,
-          bool isThereAnOR) :
+            std::vector<long>&& offsets,
+            std::vector<Matrix<long>>&& weights,
+            bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
   {
   }
@@ -459,7 +459,10 @@ public:
       taus.push_back(std::move(M));
     }
 
-    return QueryType(std::move(Fs), std::move(mus), std::move(taus), containsOR);
+    return QueryType(std::move(Fs),
+                     std::move(mus),
+                     std::move(taus),
+                     containsOR);
   }
 
   // function to return query_str
@@ -467,62 +470,60 @@ public:
 
 private:
   std::string query_str;
+  
   /**
    * @brief Function that converts a space separated infix query with ANDs, ORs,
    *and NOTs to reverse polish notation.
    * @param s Input string in infix notation.
-   * @return The string in polish notation.
+   * @return a new string in polish notation.
    **/
   inline std::string convertToPostFix(const std::string& s)
   {
     std::string ret = "";
-    std::stack<std::string> st;
-    st.push("(");
-    std::istringstream input{s};
+    std::stack<char> st;
+    st.push('(');
+    std::istringstream input{s + " )"};
     std::string symbol;
     while (input >> symbol) {
       if (!symbol.compare("(")) {
-        st.push("(");
-      } else if (!symbol.compare("AND") && !st.top().compare("&&")) {
+        st.push('(');
+      } else if (!symbol.compare("AND") && st.top() == '&') {
         // in a multiAND clause
         ret += " &&";
       } else if (!symbol.compare("AND")) {
         // not in a multiAND clause
-        st.push("&&");
-      } else if (!symbol.compare("OR") && !st.top().compare("&&")) {
+        st.push('&');
+      } else if (!symbol.compare("OR") && st.top() == '&') {
         //&& has higher precedence than ||
         ret += " &&";
         st.pop();
-        st.push("||");
-      } else if (!symbol.compare("OR") && !st.top().compare("||")) {
+        st.push('|');
+      } else if (!symbol.compare("OR") && st.top() == '|') {
         // in a multiOR clause
         ret += " ||";
       } else if (!symbol.compare("OR")) {
-        st.push("||");
+        st.push('|');
       } else if (!symbol.compare(")")) { // empty stack until hit a "("
-        while (st.top().compare("(")) {
-          ret += " " + st.top();
+        while (st.top() != '(') {
+          // add either " &&" or " ||"
+          ret += " ";
+          ret += st.top();
+          ret += st.top();
           st.pop();
         }
         st.pop(); // pop the "("
-      } else { // operands
+      } else {    // operands
         if (ret.length() != 0)
           ret += " ";
         ret += symbol;
       }
     }
-    // empty stack
-    if (st.size() != 0) {
-      while (st.top().compare("(")) {
-        ret += " " + st.top();
-        st.pop();
-      }
-      // after emptying, stack should only have "(" left
-      assertEq<LogicError>(1UL,
-                           st.size(),
-                           "error -- after conversion stack should only "
-                           "contain initial bracket: query badly formed");
-    }
+    // after emptying, stack should only have "(" left
+    assertEq<LogicError>(
+        0UL,
+        st.size(),
+        "error -- after conversion stack should be empty: query badly formed");
+
     return ret;
   }
   /**
