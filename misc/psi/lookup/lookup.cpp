@@ -100,29 +100,10 @@ int main(int argc, char* argv[])
   const helib::QueryExpr& b = helib::makeQueryExpr(1);
   const helib::QueryExpr& c = helib::makeQueryExpr(2);
   
-  helib::QueryExpr Or = a || b;
-  helib::QueryExpr OrAnd = Or && c;
-  helib::QueryBuilder qbOr1(Or);
-  helib::QueryBuilder qbOrAnd(OrAnd);
   helib::QueryBuilder qb(a);
   helib::QueryBuilder qbAnd(a && b);
   helib::QueryBuilder qbOr(a || b);
   helib::QueryBuilder qbExpand(a || (b && c));
-
-  helib::QueryBuilder qbPrecedence0(a && b && c);
-  // prints 0 1 && 2 &&
-  std::cout << qbPrecedence0.getQueryString() << "\n";
-  helib::QueryBuilder qbPrecedence1(a && b || c);
-  // prints 0 1 && 2 ||
-  std::cout << qbPrecedence1.getQueryString() << "\n";
-  helib::QueryBuilder qbPrecedence2(a || b && c);
-  // prints 0 1 2 && ||
-  std::cout << qbPrecedence2.getQueryString() << "\n";
-  helib::QueryExpr aOrb = a || b;
-  helib::QueryExpr aOrbAndc = aOrb && c;
-  helib::QueryBuilder qbPrecedence3(aOrbAndc);
-  // prints 0 1 || 2 &&
-  std::cout << qbPrecedence3.getQueryString() << "\n";
 
   helib::QueryType query = qb.build(database.columns());
   helib::QueryType queryAnd = qbAnd.build(database.columns());
