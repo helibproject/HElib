@@ -204,7 +204,7 @@ class QueryExpr
   std::shared_ptr<Expr> exp;
   /**
    * @brief Constructor.
-   * @param p The shared pointer to wrap into a QueryExpr   
+   * @param p The `std::shared_ptr` to wrap into a `QueryExpr`.
    **/
   QueryExpr(std::shared_ptr<Expr> p) : exp(p) {} 
 };
