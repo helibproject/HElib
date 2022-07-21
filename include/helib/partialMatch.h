@@ -245,10 +245,10 @@ private:
 };
 
 /**
- * @brief Utility function for creating a  QueryExpr for a specified column
+ * @brief Utility function for creating a `QueryExpr` for a specified column
  * in a query.
  * @param cl The index of the column to be used in the query.
- * @return QueryExpr with the specified `ColNumber` as the Expr.
+ * @return `QueryExpr` with the specified `ColNumber` as the `Expr`.
  **/
 inline QueryExpr makeQueryExpr(long cl)
 {
@@ -326,7 +326,7 @@ private:
  * expression.
  * @param lhs Left operand of the `AND` expression.
  * @param rhs Right operand of the `AND` expression.
- * @return QueryExpr with the `AND` as the Expr.
+ * @return `QueryExpr` with the `AND` as the `Expr`.
  **/
 inline QueryExpr operator&&(const QueryExpr& lhs,
                                        const QueryExpr& rhs)
@@ -339,7 +339,7 @@ inline QueryExpr operator&&(const QueryExpr& lhs,
  * expression.
  * @param lhs Left operand of the `OR` expression.
  * @param rhs Right operand of the `OR` expression.
- * @return `QueryExpr` with the OR as the Expr.
+ * @return `QueryExpr` with the OR as the `Expr`.
  **/
 inline QueryExpr operator||(const QueryExpr& lhs,
                                       const QueryExpr& rhs)
