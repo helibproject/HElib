@@ -1101,7 +1101,7 @@ TEST(TestPartialMatch, TestInfixToPolishConversion) {
   expected.push_back("a b c d && && &&");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= "<<i;
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = "<<i;
   }
 }
 
@@ -1142,6 +1142,93 @@ TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
   }
 }
 
+TEST(TestPartialMatch, TestBuildQueryExprFromTable){
+  // width 1 columns
+  helib::Table t0({"name","age","weight"});
+  t0.append("height");
+  std::vector<helib::QueryExpr> input_exprs;
+  std::vector<std::string> expected;
+  input_exprs.push_back(t0.buildQueryExpr("name AND age"));
+  input_exprs.push_back(t0.buildQueryExpr("name OR age"));
+  input_exprs.push_back(t0.buildQueryExpr("( age OR weight )"));
+  input_exprs.push_back(t0.buildQueryExpr("name OR age AND weight"));
+  input_exprs.push_back(t0.buildQueryExpr("( name OR age ) AND weight"));
+  input_exprs.push_back(t0.buildQueryExpr("( name AND age ) OR ( weight AND height )"));
+  input_exprs.push_back(t0.buildQueryExpr("(name AND age AND weight AND height)"));
+  expected.push_back("0 1 &&");
+  expected.push_back("0 1 ||");
+  expected.push_back("1 2 ||");
+  expected.push_back("0 1 2 && ||");
+  expected.push_back("0 1 || 2 &&");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 && 3 &&");
+
+  // multiwidth columns
+  helib::Table t1({"country","capital","population","currency"},{2,1,1,2});
+  input_exprs.push_back(t1.buildQueryExpr("country AND capital"));
+  input_exprs.push_back(t1.buildQueryExpr("country OR capital"));
+  input_exprs.push_back(t1.buildQueryExpr("( capital OR population )"));
+  input_exprs.push_back(t1.buildQueryExpr("country OR capital AND population"));
+  input_exprs.push_back(t1.buildQueryExpr("( country OR capital ) AND population"));
+  input_exprs.push_back(t1.buildQueryExpr("( country AND capital ) OR ( population AND currency )"));
+  input_exprs.push_back(t1.buildQueryExpr("(country AND capital AND population AND currency)"));
+  expected.push_back("0 1 && 2 &&");
+  expected.push_back("0 1 && 2 ||");
+  expected.push_back("2 3 ||");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 || 3 &&");
+  expected.push_back("0 1 && 2 && 3 4 5 && && ||");
+  expected.push_back("0 1 && 2 && 3 && 4 5 && &&");
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    std::cout << i << "\t";
+    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= "<<i;
+  }
+}
+
+TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
+  // width 1 columns
+  helib::Table t0({"name","age","weight"});
+  t0.append("height");
+  std::vector<helib::QueryBuilder> input_exprs;
+  std::vector<std::string> expected;
+  input_exprs.push_back(t0.buildQueryBuilder("name AND age"));
+  input_exprs.push_back(t0.buildQueryBuilder("name OR age"));
+  input_exprs.push_back(t0.buildQueryBuilder("( age OR weight )"));
+  input_exprs.push_back(t0.buildQueryBuilder("name OR age AND weight"));
+  input_exprs.push_back(t0.buildQueryBuilder("( name OR age ) AND weight"));
+  input_exprs.push_back(t0.buildQueryBuilder("( name AND age ) OR ( weight AND height )"));
+  input_exprs.push_back(t0.buildQueryBuilder("(name AND age AND weight AND height)"));
+  expected.push_back("0 1 &&");
+  expected.push_back("0 1 ||");
+  expected.push_back("1 2 ||");
+  expected.push_back("0 1 2 && ||");
+  expected.push_back("0 1 || 2 &&");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 && 3 &&");
+
+  // multiwidth columns
+  helib::Table t1({"country","capital","population","currency"},{2,1,1,2});
+  input_exprs.push_back(t1.buildQueryBuilder("country AND capital"));
+  input_exprs.push_back(t1.buildQueryBuilder("country OR capital"));
+  input_exprs.push_back(t1.buildQueryBuilder("( capital OR population )"));
+  input_exprs.push_back(t1.buildQueryBuilder("country OR capital AND population"));
+  input_exprs.push_back(t1.buildQueryBuilder("( country OR capital ) AND population"));
+  input_exprs.push_back(t1.buildQueryBuilder("( country AND capital ) OR ( population AND currency )"));
+  input_exprs.push_back(t1.buildQueryBuilder("(country AND capital AND population AND currency)"));
+  expected.push_back("0 1 && 2 &&");
+  expected.push_back("0 1 && 2 ||");
+  expected.push_back("2 3 ||");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 || 3 &&");  
+  expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
+  expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    std::cout << i << "\t";
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= "<<i;
+  }
+
+
+}
 INSTANTIATE_TEST_SUITE_P(variousParameters,
                          TestPartialMatch,
                          ::testing::Values(BGVParameters(1024, 1087, 1, 700)));
