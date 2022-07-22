@@ -201,13 +201,13 @@ class ColNumber;
  **/
 class QueryExpr
 {
-public:
+  public:
   std::shared_ptr<Expr> exp;
   /**
    * @brief Constructor.
-   * @param p The shared pointer to wrap into a QueryExpr
+   * @param p The `std::shared_ptr` to wrap into a `QueryExpr`.
    **/
-  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {}
+  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {} 
 };
 
 /**
@@ -246,10 +246,10 @@ private:
 };
 
 /**
- * @brief Utility function for creating a  QueryExpr for a specified column
+ * @brief Utility function for creating a `QueryExpr` for a specified column
  * in a query.
  * @param cl The index of the column to be used in the query.
- * @return QueryExpr with the specified `ColNumber` as the Expr.
+ * @return `QueryExpr` with the specified `ColNumber` as the `Expr`.
  **/
 inline QueryExpr makeQueryExpr(long cl)
 {
@@ -257,18 +257,19 @@ inline QueryExpr makeQueryExpr(long cl)
   return QueryExpr(std::make_shared<ColNumber>(col));
 }
 
+
 /**
  * @class And
- * @brief An object representing the logical `AND` expression which inherits
- *from `Expr`.
+ * @brief An object representing the logical `AND` expression which inherits from
+ * `Expr`.
  **/
 class And : public Expr
 {
 public:
   /**
-   * @brief Function for returning the logical `AND` expression in reverse
-   *polish notation where the `AND` operation is represented by `&&` and each
-   *operand is a column number.
+   * @brief Function for returning the logical `AND` expression in reverse polish
+   * notation where the `AND` operation is represented by `&&` and each operand
+   * is a column number.
    * @return A string representing the `AND` expression in reverse polish
    * notation.
    **/
@@ -326,9 +327,10 @@ private:
  * expression.
  * @param lhs Left operand of the `AND` expression.
  * @param rhs Right operand of the `AND` expression.
- * @return QueryExpr with the `AND` as the Expr.
+ * @return `QueryExpr` with the `AND` as the `Expr`.
  **/
-inline QueryExpr operator&&(const QueryExpr& lhs, const QueryExpr& rhs)
+inline QueryExpr operator&&(const QueryExpr& lhs,
+                                       const QueryExpr& rhs)
 {
   return QueryExpr(std::make_shared<And>(lhs.exp, rhs.exp));
 }
@@ -338,12 +340,14 @@ inline QueryExpr operator&&(const QueryExpr& lhs, const QueryExpr& rhs)
  * expression.
  * @param lhs Left operand of the `OR` expression.
  * @param rhs Right operand of the `OR` expression.
- * @return `QueryExpr` with the OR as the Expr.
+ * @return `QueryExpr` with the OR as the `Expr`.
  **/
-inline QueryExpr operator||(const QueryExpr& lhs, const QueryExpr& rhs)
+inline QueryExpr operator||(const QueryExpr& lhs,
+                                      const QueryExpr& rhs)
 {
   return QueryExpr(std::make_shared<Or>(lhs.exp, rhs.exp));
 }
+
 /**
  * @brief free copy of isNumber to use in this function
  */
