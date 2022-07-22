@@ -456,7 +456,7 @@ QueryExpr buildQuery(const std::string& inFixQuery)
   assertEq<LogicError>(1UL,
                        oprandStack.size(),
                        "oprandStack should have one element");
-  return std::move(oprandStack.top());
+  return oprandStack.top();
 }
 /**
  * @struct QueryType
@@ -663,7 +663,7 @@ private:
         ret += symbol;
       }
     }
-    // after emptying, stack should only have "(" left
+    
     assertEq<LogicError>(
         0UL,
         st.size(),
