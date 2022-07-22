@@ -836,6 +836,225 @@ private:
   }
 };
 
+class Table
+{
+public:
+  /**
+   * @brief Construct a new Table object from column labels only.
+   * Constructs a table which has all columns of ctxt width = 1.
+   * @param cols tuple of column labels
+   */
+
+  Table(std::vector<std::string> cols) :
+      col_names(cols),
+      col_dims(std::vector(cols.size(), 1L)),
+      col_count(cols.size())
+  {
+  }
+
+  /**
+   * @brief Construct a new Table object from column labels and dimensions.
+   * @param cols tuple of column labels
+   * @param dims tuple of column ciphertext dimensions
+   */
+  // Should this assert col_names.length() = col_dims.length()?
+  // Should this assert all dims > 0?
+  Table(std::vector<std::string> cols, std::vector<long> dims) :
+      col_names(cols), col_dims(dims)
+  {
+    assertEq<LogicError>(
+        cols.size(),
+        dims.size(),
+        "Error, number of columns and number of dimensions mismatch");
+    col_count = std::accumulate(dims.begin(), dims.end(), 0);
+  }
+  void append(std::string col, long dim = 1L)
+  {
+    col_names.push_back(col);
+    col_dims.push_back(dim);
+    col_count += dim;
+  }
+  /**
+   * @brief insert a new column at index
+   * @param index the Table index to insert the new column, using zero ordering
+   * @param col the column label
+   * @param dim the ciphertext dimension of the new column
+   */
+  void insert(long index, std::string col, long dim = 1L)
+  {
+    // sanitise/check index?
+    col_names.insert(col_names.begin() + index, col);
+    col_dims.insert(col_dims.begin() + index, dim);
+    col_count += dim;
+  }
+  /**
+   * @brief resize the width of a column
+   * @param index the column to resize
+   * @param newdim the new column width
+   */
+  void resize(long index, long newdim)
+  {
+    assertTrue<LogicError>(newdim > 0,
+                           "error, column width must be a positive integer");
+    col_count += (newdim - col_dims[index]);
+    col_dims[index] = newdim;
+  }
+  void erase(long index)
+  {
+    // sanitise/check index?
+    col_count -= col_dims[index];
+    col_names.erase(col_names.begin() + index);
+    col_dims.erase(col_dims.begin() + index);
+  }
+  /**
+   * @brief Build a `QueryExpr` object from a table query.
+   *
+   * @param s A query with space separated ANDs and ORs and column labels as
+   * operands.
+   * @return `QueryExpr` with database column numbers as operands.
+   */
+  QueryExpr buildQueryExpr(const std::string& s) const
+  {
+    std::unordered_map<std::string, QueryExpr> operands = buildOperands();
+    std::stack<char> optorStack;       // stack for operators
+    std::stack<QueryExpr> oprandStack; // stack for operands
+
+    // add spaces in the input stream before and after brackets
+    std::stringstream input{" "};
+    for (int i = 0; i < s.size(); i++) {
+      if (s[i] == '(')
+        input << " ( ";
+      else if (s[i] == ')')
+        input << " ) ";
+      else
+        input << s[i];
+    }
+    input << " )";
+    optorStack.push('(');
+    std::string symbol;
+    while (input >> symbol) {
+      if (!symbol.compare("("))
+        optorStack.push('(');
+      else if (!symbol.compare("AND")) {
+        if (optorStack.top() == '&') { // multiAND clause
+          QueryExpr rhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr lhs = oprandStack.top(); // NB: change to &&=
+          oprandStack.pop();
+          QueryExpr newop = lhs && rhs;
+          oprandStack.push(newop);
+        } else {
+          optorStack.push('&');
+        }
+      } else if (!symbol.compare("OR")) {
+        if (optorStack.top() == '|') { // multiOR clause
+          QueryExpr rhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr lhs = oprandStack.top(); // NB: change to ||=
+          oprandStack.pop();
+          QueryExpr newop = lhs || rhs;
+          oprandStack.push(newop);
+        } else if (optorStack.top() == '&') { // AND has precedence
+          QueryExpr rhs = oprandStack.top();
+          oprandStack.pop();
+          QueryExpr lhs = oprandStack.top(); // NB: change to &&=
+          oprandStack.pop();
+          QueryExpr newop = lhs && rhs;
+          oprandStack.push(newop);
+          optorStack.pop();
+          optorStack.push('|');
+        } else {
+          optorStack.push('|');
+        }
+      } else if (!symbol.compare(")")) {
+        while (optorStack.top() != '(') {
+          if (optorStack.top() == '&') {
+            QueryExpr rhs = oprandStack.top();
+            oprandStack.pop();
+            QueryExpr lhs = oprandStack.top();
+            oprandStack.pop();
+            QueryExpr newop = lhs && rhs;
+            oprandStack.push(newop);
+            optorStack.pop();
+          } else if (optorStack.top() == '|') {
+            QueryExpr rhs = oprandStack.top();
+            oprandStack.pop();
+            QueryExpr lhs = oprandStack.top();
+            oprandStack.pop();
+            QueryExpr newop = lhs || rhs;
+            oprandStack.push(newop);
+            optorStack.pop();
+          } else {
+            // don't think this state is reachable
+            throw InvalidArgument("unrecognised operator");
+          }
+        }
+        optorStack.pop(); // pop the "("
+      } else {
+        // Should be a column
+        assertTrue(operands.find(symbol) != operands.end(),
+                   "unrecognised column: '" + symbol + "'");
+        oprandStack.push(operands.at(symbol));
+      }
+    }
+    assertEq<LogicError>(0UL, optorStack.size(), "optorStack should be empty");
+    assertEq<LogicError>(1UL,
+                         oprandStack.size(),
+                         "oprandStack should have one element");
+    return oprandStack.top();
+  }
+
+  QueryBuilder buildQueryBuilder(const std::string& s) const
+  {
+    std::unordered_map<std::string, std::string> operands = buildOperandStrings();
+    std::string scopy = s;
+    for (std::string col : col_names) {
+      scopy = std::regex_replace(scopy, std::regex(col), operands[col]);
+    }
+    return QueryBuilder(scopy);
+  }
+
+private:
+  std::vector<std::string> col_names;
+  std::vector<long> col_dims;
+  long col_count;
+  std::unordered_map<std::string, QueryExpr> buildOperands() const
+  {
+    long current_index = 0;
+    std::unordered_map<std::string, QueryExpr> oprands;
+    for (int i = 0; i < col_names.size(); i++) {
+      // assert dim > 0?
+      QueryExpr op = makeQueryExpr(current_index);
+      current_index++;
+      for (int j = 1; j < col_dims[i]; j++) {
+        QueryExpr newop = op && makeQueryExpr(current_index);
+        ;
+        op = newop;
+        current_index++;
+      }
+      oprands.insert(std::make_pair(col_names[i], op));
+    }
+    return oprands;
+  }
+
+  std::unordered_map<std::string, std::string> buildOperandStrings() const
+  {
+    long current_index = 0;
+    std::unordered_map<std::string, std::string> oprands;
+    for (int i = 0; i < col_names.size(); i++) {
+      // assert dim > 0?
+      std::string op = std::to_string(current_index);
+      current_index++;
+      for (int j = 1; j < col_dims[i]; j++) {
+        op += " AND " + std::to_string(current_index);
+        current_index++;
+      }
+      oprands[col_names[i]] = op;
+    }
+    return oprands;
+  }
+};
+
 /**
  * @class Database
  * @tparam TXT The database is templated on `TXT` which can either be a `Ctxt`
