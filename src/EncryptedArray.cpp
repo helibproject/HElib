@@ -736,7 +736,6 @@ void totalSums(Ctxt &ctxt)
       orig = ctxt;
       orig.bumpNoiseBound(0.00001);
       e += 1;
-      
     }
   }
   ctxt = orig;
