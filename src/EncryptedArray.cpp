@@ -707,34 +707,30 @@ void runningSums(const EncryptedArray& ea, Ctxt& ctxt)
   
 
 // implemented using https://eprint.iacr.org/2014/106.pdf, Pg. 10
-void totalSums(Ctxt &ctxt)
+void totalSums(const EncryptedArray &ea, Ctxt &ctxt)
 {
-  const EncryptedArray& ea = context().getEA();
   long n = ea.size(); // slot-count
 
   if (n == 1)
     return;
 
   Ctxt orig = ctxt;
-  Ctxt tmp1(publicKey());
-  Ctxt tmp2(publicKey());
-
+  
   long b = NTL::NumBits(n);
   long e = 1;
 
   for (long i = b - 2; i >= 0; i--) {
-    tmp1 = orig;
+    
+    Ctxt tmp1 = orig;
     helib::rotate(tmp1, e);
     orig += tmp1;
-    ctxt.bumpNoiseBound(0.00001); // increasing the noise bound by a factor of 0.00001 in case decryption fails
     e = 2 * e;
 
     if (NTL::bit(n, i)) {
-      tmp2 = orig;
+      Ctxt tmp2 = orig;
       helib::rotate(tmp2, 1);
-      ctxt += tmp2;
-      orig = ctxt;
-      orig.bumpNoiseBound(0.00001);
+      tmp2 += ctxt;
+      orig = tmp2;
       e += 1;
     }
   }
