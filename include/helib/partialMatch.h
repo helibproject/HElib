@@ -201,13 +201,13 @@ class ColNumber;
  **/
 class QueryExpr
 {
-  public:
+public:
   std::shared_ptr<Expr> exp;
   /**
    * @brief Constructor.
    * @param p The `std::shared_ptr` to wrap into a `QueryExpr`.
    **/
-  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {} 
+  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {}
 };
 
 /**
@@ -257,19 +257,18 @@ inline QueryExpr makeQueryExpr(long cl)
   return QueryExpr(std::make_shared<ColNumber>(col));
 }
 
-
 /**
  * @class And
- * @brief An object representing the logical `AND` expression which inherits from
- * `Expr`.
+ * @brief An object representing the logical `AND` expression which inherits
+ *from `Expr`.
  **/
 class And : public Expr
 {
 public:
   /**
-   * @brief Function for returning the logical `AND` expression in reverse polish
-   * notation where the `AND` operation is represented by `&&` and each operand
-   * is a column number.
+   * @brief Function for returning the logical `AND` expression in reverse
+   *polish notation where the `AND` operation is represented by `&&` and each
+   *operand is a column number.
    * @return A string representing the `AND` expression in reverse polish
    * notation.
    **/
@@ -329,8 +328,7 @@ private:
  * @param rhs Right operand of the `AND` expression.
  * @return `QueryExpr` with the `AND` as the `Expr`.
  **/
-inline QueryExpr operator&&(const QueryExpr& lhs,
-                                       const QueryExpr& rhs)
+inline QueryExpr operator&&(const QueryExpr& lhs, const QueryExpr& rhs)
 {
   return QueryExpr(std::make_shared<And>(lhs.exp, rhs.exp));
 }
@@ -342,8 +340,7 @@ inline QueryExpr operator&&(const QueryExpr& lhs,
  * @param rhs Right operand of the `OR` expression.
  * @return `QueryExpr` with the OR as the `Expr`.
  **/
-inline QueryExpr operator||(const QueryExpr& lhs,
-                                      const QueryExpr& rhs)
+inline QueryExpr operator||(const QueryExpr& lhs, const QueryExpr& rhs)
 {
   return QueryExpr(std::make_shared<Or>(lhs.exp, rhs.exp));
 }
@@ -667,7 +664,7 @@ private:
         ret += symbol;
       }
     }
-    
+
     assertEq<LogicError>(
         0UL,
         st.size(),
@@ -836,6 +833,13 @@ private:
   }
 };
 
+/**
+ * @brief A class for converting cleartext queries with column labels to PSI
+ * queries with column numbers.
+ * Column labels are stored in col_names.
+ * Optional support for columns that are wider than a single ciphertext. This is
+ * stored in col_dims.
+ */
 class Table
 {
 public:
@@ -857,7 +861,6 @@ public:
    * @param cols tuple of column labels
    * @param dims tuple of column ciphertext dimensions
    */
-  // Should this assert col_names.length() = col_dims.length()?
   // Should this assert all dims > 0?
   Table(std::vector<std::string> cols, std::vector<long> dims) :
       col_names(cols), col_dims(dims)
@@ -918,7 +921,6 @@ public:
     std::unordered_map<std::string, QueryExpr> operands = buildOperands();
     std::stack<char> optorStack;       // stack for operators
     std::stack<QueryExpr> oprandStack; // stack for operands
-
     // add spaces in the input stream before and after brackets
     std::stringstream input{" "};
     for (int i = 0; i < s.size(); i++) {
@@ -1006,7 +1008,8 @@ public:
 
   QueryBuilder buildQueryBuilder(const std::string& s) const
   {
-    std::unordered_map<std::string, std::string> operands = buildOperandStrings();
+    std::unordered_map<std::string, std::string> operands =
+        buildOperandStrings();
     std::string scopy = s;
     for (std::string col : col_names) {
       scopy = std::regex_replace(scopy, std::regex(col), operands[col]);
@@ -1055,6 +1058,48 @@ private:
   }
 };
 
+/**
+ * @brief free function taking a table description of the form
+ * Table(col1, col2, col3,...) and creates a Table object with
+ * these column labels.
+ *
+ * @param s a string of the form Table( * , * , * , ...), with no commas
+ * in column labels.
+ * @return Table with labels as column labels and every ctxt dimension equal
+ * to 1.
+ */
+Table makeTableFromString(const std::string& s)
+{
+  // check string is of the form Table()
+  std::string prefix = "Table(";
+  assertTrue<LogicError>(s.rfind(prefix, 0) == 0,
+                         "string does not start with Table key word");
+  assertTrue<LogicError>(s[s.length() - 1] == ')',
+                         "string does not end with )");
+  // construct a stringstream to parse input. Need spaces before and after
+  // commas and skip final bracket
+  std::stringstream input{" "};
+  for (int i = prefix.length(); i < s.length() - 1; i++) {
+    if (s[i] == ',')
+      input << " , ";
+    else {
+      input << s[i];
+    }
+  }
+  std::vector<std::string> columns;
+  std::string symbol;
+  std::string col = "";
+  while (input >> symbol) {
+    if (!symbol.compare(",")) {
+      columns.push_back(col);
+      col = "";
+    } else {
+      col += symbol;
+    }
+  }
+  columns.push_back(col);
+  return Table(columns);
+}
 /**
  * @class Database
  * @tparam TXT The database is templated on `TXT` which can either be a `Ctxt`
