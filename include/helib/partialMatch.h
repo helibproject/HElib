@@ -366,13 +366,15 @@ QueryExpr buildQuery(const std::string& inFixQuery)
   // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
   std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
   std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
-  std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+  //std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
   assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), consecOps),
               "invalid query, found consecutive operators");
   assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), opSpaces),
               "invalid query, require spaces around ANDs and ORs");
-  assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), consecArgs),
-              "invalid query, found consecutive arguments");
+  // taking this out to allow for multi word arguments e.g. date of birth
+  /**assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), consecArgs),
+              "invalid query, found consecutive arguments");**/
+  
   std::stack<char>
       optorStack; // stack for operators. Making this chars for easy unpacking
   std::stack<QueryExpr> oprandStack; // stack for operands
@@ -607,13 +609,14 @@ private:
     // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
     std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
     std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
-    std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+    //std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
     assertFalse(regex_search(s.begin(), s.end(), opSpaces),
                 "invalid query, require spaces around ANDs and ORs");
-    assertFalse(regex_search(s.begin(), s.end(), consecArgs),
-                "invalid query, found consecutive arguments");
+    // taking this out to allow for multi word arguments
+    /**assertFalse(regex_search(s.begin(), s.end(), consecArgs),
+                "invalid query, found consecutive arguments");**/
     std::string ret = "";
     std::stack<char> st;
     // add spaces in the input stream before and after brackets
