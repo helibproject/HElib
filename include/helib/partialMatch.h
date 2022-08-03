@@ -1097,6 +1097,8 @@ Table makeTableFromString(const std::string& s)
       columns.push_back(col);
       col = "";
     } else {
+      if(col.length() != 0)
+        col += " ";
       col += symbol;
     }
   }
