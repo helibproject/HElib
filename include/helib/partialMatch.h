@@ -366,7 +366,7 @@ QueryExpr buildQuery(const std::string& inFixQuery)
   // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
   std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
   std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
-  //std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+  // std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
   assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), consecOps),
               "invalid query, found consecutive operators");
   assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), opSpaces),
@@ -374,10 +374,10 @@ QueryExpr buildQuery(const std::string& inFixQuery)
   // taking this out to allow for multi word arguments e.g. date of birth
   /**assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), consecArgs),
               "invalid query, found consecutive arguments");**/
-  
-  std::stack<char>
-      optorStack; // stack for operators. Making this chars for easy unpacking
-  std::stack<QueryExpr> oprandStack; // stack for operands
+
+  std::stack<char> operatorStack; // stack for operators. Making this chars for
+                                  // easy unpacking
+  std::stack<QueryExpr> operandStack; // stack for operands
 
   // add spaces in the input stream before and after brackets
   std::stringstream input{" "};
@@ -390,76 +390,78 @@ QueryExpr buildQuery(const std::string& inFixQuery)
       input << inFixQuery[i];
   }
   input << " )";
-  optorStack.push('(');
+  operatorStack.push('(');
   std::string symbol;
   while (input >> symbol) {
     if (!symbol.compare("("))
-      optorStack.push('(');
+      operatorStack.push('(');
     else if (!symbol.compare("AND")) {
-      if (optorStack.top() == '&') { // multiAND clause
-        QueryExpr rhs = oprandStack.top();
-        oprandStack.pop();
-        QueryExpr lhs = oprandStack.top();
-        oprandStack.pop();
+      if (operatorStack.top() == '&') { // multiAND clause
+        QueryExpr rhs = operandStack.top();
+        operandStack.pop();
+        QueryExpr lhs = operandStack.top();
+        operandStack.pop();
         QueryExpr newop = lhs && rhs;
-        oprandStack.push(newop);
+        operandStack.push(newop);
       } else {
-        optorStack.push('&');
+        operatorStack.push('&');
       }
     } else if (!symbol.compare("OR")) {
-      if (optorStack.top() == '|') { // multiOR clause
-        QueryExpr rhs = oprandStack.top();
-        oprandStack.pop();
-        QueryExpr lhs = oprandStack.top();
-        oprandStack.pop();
+      if (operatorStack.top() == '|') { // multiOR clause
+        QueryExpr rhs = operandStack.top();
+        operandStack.pop();
+        QueryExpr lhs = operandStack.top();
+        operandStack.pop();
         QueryExpr newop = lhs || rhs;
-        oprandStack.push(newop);
-      } else if (optorStack.top() == '&') { // AND has precedence
-        QueryExpr rhs = oprandStack.top();
-        oprandStack.pop();
-        QueryExpr lhs = oprandStack.top();
-        oprandStack.pop();
+        operandStack.push(newop);
+      } else if (operatorStack.top() == '&') { // AND has precedence
+        QueryExpr rhs = operandStack.top();
+        operandStack.pop();
+        QueryExpr lhs = operandStack.top();
+        operandStack.pop();
         QueryExpr newop = lhs && rhs;
-        oprandStack.push(newop);
-        optorStack.pop();
-        optorStack.push('|');
+        operandStack.push(newop);
+        operatorStack.pop();
+        operatorStack.push('|');
       } else {
-        optorStack.push('|');
+        operatorStack.push('|');
       }
     } else if (!symbol.compare(")")) {
-      while (optorStack.top() != '(') {
-        if (optorStack.top() == '&') {
-          QueryExpr rhs = oprandStack.top();
-          oprandStack.pop();
-          QueryExpr lhs = oprandStack.top();
-          oprandStack.pop();
+      while (operatorStack.top() != '(') {
+        if (operatorStack.top() == '&') {
+          QueryExpr rhs = operandStack.top();
+          operandStack.pop();
+          QueryExpr lhs = operandStack.top();
+          operandStack.pop();
           QueryExpr newop = lhs && rhs;
-          oprandStack.push(newop);
-          optorStack.pop();
-        } else if (optorStack.top() == '|') {
-          QueryExpr rhs = oprandStack.top();
-          oprandStack.pop();
-          QueryExpr lhs = oprandStack.top();
-          oprandStack.pop();
+          operandStack.push(newop);
+          operatorStack.pop();
+        } else if (operatorStack.top() == '|') {
+          QueryExpr rhs = operandStack.top();
+          operandStack.pop();
+          QueryExpr lhs = operandStack.top();
+          operandStack.pop();
           QueryExpr newop = lhs || rhs;
-          oprandStack.push(newop);
-          optorStack.pop();
+          operandStack.push(newop);
+          operatorStack.pop();
         } else {
           throw InvalidArgument("unrecognised operator");
         }
       }
-      optorStack.pop(); // pop the "("
+      operatorStack.pop(); // pop the "("
     } else {
       // Should be a number
       assertTrue(isNumber(symbol), "String is not a number: '" + symbol + "'");
-      oprandStack.push(makeQueryExpr(std::stoi(symbol)));
+      operandStack.push(makeQueryExpr(std::stoi(symbol)));
     }
   }
-  assertEq<LogicError>(0UL, optorStack.size(), "optorStack should be empty");
+  assertEq<LogicError>(0UL,
+                       operatorStack.size(),
+                       "operatorStack should be empty");
   assertEq<LogicError>(1UL,
-                       oprandStack.size(),
-                       "oprandStack should have one element");
-  return oprandStack.top();
+                       operandStack.size(),
+                       "operandStack should have one element");
+  return operandStack.top();
 }
 /**
  * @struct QueryType
@@ -609,7 +611,7 @@ private:
     // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
     std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
     std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
-    //std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+    // std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
     assertFalse(regex_search(s.begin(), s.end(), opSpaces),
@@ -922,8 +924,8 @@ public:
   QueryExpr buildQueryExpr(const std::string& s) const
   {
     std::unordered_map<std::string, QueryExpr> operands = buildOperands();
-    std::stack<char> optorStack;       // stack for operators
-    std::stack<QueryExpr> oprandStack; // stack for operands
+    std::stack<char> operatorStack;     // stack for operators
+    std::stack<QueryExpr> operandStack; // stack for operands
     // add spaces in the input stream before and after brackets
     std::stringstream input{" "};
     for (int i = 0; i < s.size(); i++) {
@@ -935,78 +937,60 @@ public:
         input << s[i];
     }
     input << " )";
-    optorStack.push('(');
+    operatorStack.push('(');
     std::string symbol;
+    std::string col = "";
     while (input >> symbol) {
       if (!symbol.compare("("))
-        optorStack.push('(');
-      else if (!symbol.compare("AND")) {
-        if (optorStack.top() == '&') { // multiAND clause
-          QueryExpr rhs = oprandStack.top();
-          oprandStack.pop();
-          QueryExpr lhs = oprandStack.top(); // NB: change to &&=
-          oprandStack.pop();
-          QueryExpr newop = lhs && rhs;
-          oprandStack.push(newop);
-        } else {
-          optorStack.push('&');
+        operatorStack.push('(');
+      else if (!symbol.compare("AND") || !symbol.compare("OR") ||
+               !symbol.compare(")")) {
+        // make an operator fpr the operator stack
+        if (col.length() != 0) {
+          assertTrue(operands.find(col) != operands.end(),
+                     "unrecognised column: '" + col + "'");
+          operandStack.push(operands.at(col));
+          col = "";
         }
-      } else if (!symbol.compare("OR")) {
-        if (optorStack.top() == '|') { // multiOR clause
-          QueryExpr rhs = oprandStack.top();
-          oprandStack.pop();
-          QueryExpr lhs = oprandStack.top(); // NB: change to ||=
-          oprandStack.pop();
-          QueryExpr newop = lhs || rhs;
-          oprandStack.push(newop);
-        } else if (optorStack.top() == '&') { // AND has precedence
-          QueryExpr rhs = oprandStack.top();
-          oprandStack.pop();
-          QueryExpr lhs = oprandStack.top(); // NB: change to &&=
-          oprandStack.pop();
-          QueryExpr newop = lhs && rhs;
-          oprandStack.push(newop);
-          optorStack.pop();
-          optorStack.push('|');
-        } else {
-          optorStack.push('|');
-        }
-      } else if (!symbol.compare(")")) {
-        while (optorStack.top() != '(') {
-          if (optorStack.top() == '&') {
-            QueryExpr rhs = oprandStack.top();
-            oprandStack.pop();
-            QueryExpr lhs = oprandStack.top();
-            oprandStack.pop();
-            QueryExpr newop = lhs && rhs;
-            oprandStack.push(newop);
-            optorStack.pop();
-          } else if (optorStack.top() == '|') {
-            QueryExpr rhs = oprandStack.top();
-            oprandStack.pop();
-            QueryExpr lhs = oprandStack.top();
-            oprandStack.pop();
-            QueryExpr newop = lhs || rhs;
-            oprandStack.push(newop);
-            optorStack.pop();
-          } else {
-            // don't think this state is reachable
-            throw InvalidArgument("unrecognised operator");
+
+        if (!symbol.compare("AND") || !symbol.compare("OR")) {
+          if ((operatorStack.top() == '&') ||
+              ((operatorStack.top() == '|') && !symbol.compare("OR"))) {
+            // cases where precedence needs to be handled
+            QueryExpr rhs = operandStack.top();
+            operandStack.pop();
+            QueryExpr lhs = operandStack.top();
+            operandStack.pop();
+            operandStack.push((operatorStack.top() == '&') ? (lhs && rhs)
+                                                           : (lhs || rhs));
+            operatorStack.pop();
           }
+          // push new operator to the stack
+          operatorStack.push((!symbol.compare("AND")) ? '&' : '|');
+        } else {
+          // must be a ')': flush the operator stack
+          while (operatorStack.top() != '(') {
+            QueryExpr rhs = operandStack.top();
+            operandStack.pop();
+            QueryExpr lhs = operandStack.top();
+            operandStack.pop();
+            operandStack.push((operatorStack.top() == '&') ? (lhs && rhs)
+                                                           : (lhs || rhs));
+            operatorStack.pop();
+          }
+          operatorStack.pop(); // pop the "("
         }
-        optorStack.pop(); // pop the "("
       } else {
-        // Should be a column
-        assertTrue(operands.find(symbol) != operands.end(),
-                   "unrecognised column: '" + symbol + "'");
-        oprandStack.push(operands.at(symbol));
+        col += (col.length() == 0) ? symbol : " " + symbol;
       }
     }
-    assertEq<LogicError>(0UL, optorStack.size(), "optorStack should be empty");
+    assertEq<LogicError>(0UL,
+                         operatorStack.size(),
+                         "operatorStack should be empty");
     assertEq<LogicError>(1UL,
-                         oprandStack.size(),
-                         "oprandStack should have one element");
-    return oprandStack.top();
+                         operandStack.size(),
+                         "operandStack should have one element");
+    return operandStack.top();
   }
 
   QueryBuilder buildQueryBuilder(const std::string& s) const
@@ -1027,26 +1011,25 @@ private:
   std::unordered_map<std::string, QueryExpr> buildOperands() const
   {
     long current_index = 0;
-    std::unordered_map<std::string, QueryExpr> oprands;
+    std::unordered_map<std::string, QueryExpr> operands;
     for (int i = 0; i < col_names.size(); i++) {
       // assert dim > 0?
       QueryExpr op = makeQueryExpr(current_index);
       current_index++;
       for (int j = 1; j < col_dims[i]; j++) {
         QueryExpr newop = op && makeQueryExpr(current_index);
-        ;
         op = newop;
         current_index++;
       }
-      oprands.insert(std::make_pair(col_names[i], op));
+      operands.insert(std::make_pair(col_names[i], op));
     }
-    return oprands;
+    return operands;
   }
 
   std::unordered_map<std::string, std::string> buildOperandStrings() const
   {
     long current_index = 0;
-    std::unordered_map<std::string, std::string> oprands;
+    std::unordered_map<std::string, std::string> operands;
     for (int i = 0; i < col_names.size(); i++) {
       // assert dim > 0?
       std::string op = std::to_string(current_index);
@@ -1055,9 +1038,9 @@ private:
         op += " AND " + std::to_string(current_index);
         current_index++;
       }
-      oprands[col_names[i]] = op;
+      operands[col_names[i]] = op;
     }
-    return oprands;
+    return operands;
   }
 };
 
@@ -1097,9 +1080,7 @@ Table makeTableFromString(const std::string& s)
       columns.push_back(col);
       col = "";
     } else {
-      if(col.length() != 0)
-        col += " ";
-      col += symbol;
+      col += (col.length() == 0) ? symbol : " " + symbol;
     }
   }
   columns.push_back(col);
