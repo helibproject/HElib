@@ -1240,6 +1240,22 @@ TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
   expected.push_back("0 1 && 2 || 3 &&");  
   expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
   expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
+
+  helib::Table t2({"first name","last name", "date of birth", "address"});
+  input_exprs.push_back(t2.buildQueryBuilder("first name AND last name"));
+  input_exprs.push_back(t2.buildQueryBuilder("first name OR last name"));
+  input_exprs.push_back(t2.buildQueryBuilder("( last name OR date of birth )"));
+  input_exprs.push_back(t2.buildQueryBuilder("first name OR last name AND date of birth"));
+  input_exprs.push_back(t2.buildQueryBuilder("( first name OR last name ) AND date of birth"));
+  input_exprs.push_back(t2.buildQueryBuilder("( first name AND last name ) OR ( date of birth AND address )"));
+  input_exprs.push_back(t2.buildQueryBuilder("(first name AND last name AND date of birth AND address)"));
+  expected.push_back("0 1 &&");
+  expected.push_back("0 1 ||");
+  expected.push_back("1 2 ||");
+  expected.push_back("0 1 2 && ||");
+  expected.push_back("0 1 || 2 &&");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 && 3 &&");
   
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= "<<i;
