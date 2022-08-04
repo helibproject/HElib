@@ -1179,8 +1179,26 @@ TEST(TestPartialMatch, TestBuildQueryExprFromTable){
   expected.push_back("0 1 && 2 || 3 &&");
   expected.push_back("0 1 && 2 && 3 4 5 && && ||");
   expected.push_back("0 1 && 2 && 3 && 4 5 && &&");
+
+  // multiword columns
+
+  helib::Table t2({"first name","last name", "date of birth", "address"});
+  input_exprs.push_back(t2.buildQueryExpr("first name AND last name"));
+  input_exprs.push_back(t2.buildQueryExpr("first name OR last name"));
+  input_exprs.push_back(t2.buildQueryExpr("( last name OR date of birth )"));
+  input_exprs.push_back(t2.buildQueryExpr("first name OR last name AND date of birth"));
+  input_exprs.push_back(t2.buildQueryExpr("( first name OR last name ) AND date of birth"));
+  input_exprs.push_back(t2.buildQueryExpr("( first name AND last name ) OR ( date of birth AND address )"));
+  input_exprs.push_back(t2.buildQueryExpr("(first name AND last name AND date of birth AND address)"));
+  expected.push_back("0 1 &&");
+  expected.push_back("0 1 ||");
+  expected.push_back("1 2 ||");
+  expected.push_back("0 1 2 && ||");
+  expected.push_back("0 1 || 2 &&");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 && 3 &&");
+
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    std::cout << i << "\t";
     EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= "<<i;
   }
 }
@@ -1222,10 +1240,12 @@ TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
   expected.push_back("0 1 && 2 || 3 &&");  
   expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
   expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
+  
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    std::cout << i << "\t";
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= "<<i;
   }
+
+
 
 
 }
