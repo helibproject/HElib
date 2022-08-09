@@ -700,7 +700,7 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesPostFix)
   const helib::QueryExpr& height = helib::makeQueryExpr(2);
   const helib::QueryExpr& weight = helib::makeQueryExpr(3);
 
-  helib::QueryExpr res = ((name && age) || height); 
+  helib::QueryExpr res = ((name && age) || height);
 
   res = name || age || height;
   EXPECT_EQ("0 1 || 2 ||", res.exp->eval());
@@ -806,9 +806,9 @@ TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
   expected_taus_vector.push_back(expected_taus);
   std::vector<std::vector<long>> expected_mus_vector =
       {{0, 0}, {0}, {0, 0}, {0, 0}, {0, 0, 0, 0}, {0, 0, 0}};
-  EXPECT_EQ(expected_Fs_vector.size(),cases);
-  EXPECT_EQ(expected_taus_vector.size(),cases);
-  EXPECT_EQ(expected_mus_vector.size(),cases);
+  EXPECT_EQ(expected_Fs_vector.size(), cases);
+  EXPECT_EQ(expected_taus_vector.size(), cases);
+  EXPECT_EQ(expected_mus_vector.size(), cases);
 
   for (int j = 0; j < cases; j++) {
     helib::QueryType query = qbs[j].build(columns);
@@ -1066,7 +1066,8 @@ TEST_P(TestPartialMatch, scoringWorksWithEncryptedDatabaseAndQueryAPIs)
     }
 }
 
-TEST(TestPartialMatch, TestInfixToPolishConversion) {
+TEST(TestPartialMatch, TestInfixToPolishConversion)
+{
   std::vector<helib::QueryBuilder> input_exprs;
   input_exprs.push_back(helib::QueryBuilder("a AND b"));
   input_exprs.push_back(helib::QueryBuilder("a OR b"));
@@ -1074,14 +1075,16 @@ TEST(TestPartialMatch, TestInfixToPolishConversion) {
   input_exprs.push_back(helib::QueryBuilder("a AND ( b OR c )"));
   input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR c"));
   input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR ( c AND d )"));
-  input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR ( ( c AND d ) AND ( e OR f ) )"));
-  //test spaces, order of precedence, triple char operands
+  input_exprs.push_back(
+      helib::QueryBuilder("( a AND b ) OR ( ( c AND d ) AND ( e OR f ) )"));
+  // test spaces, order of precedence, triple char operands
   input_exprs.push_back(helib::QueryBuilder("a AND b AND c"));
   input_exprs.push_back(helib::QueryBuilder("( a OR b AND c )"));
   input_exprs.push_back(helib::QueryBuilder("a AND b OR c"));
   input_exprs.push_back(helib::QueryBuilder("aaa OR bbc OR ac"));
-  input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR ( c AND d ) AND ( e OR f )"));
-  //test brackets
+  input_exprs.push_back(
+      helib::QueryBuilder("( a AND b ) OR ( c AND d ) AND ( e OR f )"));
+  // test brackets
   input_exprs.push_back(helib::QueryBuilder("(a AND b) OR (c AND d)"));
   input_exprs.push_back(helib::QueryBuilder("(a AND (b AND (c AND d)))"));
   std::vector<std::string> expected;
@@ -1101,11 +1104,12 @@ TEST(TestPartialMatch, TestInfixToPolishConversion) {
   expected.push_back("a b c d && && &&");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = "<<i;
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = " << i;
   }
 }
 
-TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
+TEST(TestPartialMatch, TestBuildQueryExprFromInfixString)
+{
   std::vector<helib::QueryExpr> input_exprs;
   input_exprs.push_back(helib::buildQuery("0 AND 1"));
   input_exprs.push_back(helib::buildQuery("0 OR 1"));
@@ -1113,13 +1117,15 @@ TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
   input_exprs.push_back(helib::buildQuery("0 AND ( 1 OR 2 )"));
   input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR 2"));
   input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 )"));
-  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( ( 2 AND 3 ) AND ( 4 OR 5 ) )"));
-  //test spaces, order of precedence, triple char operands
+  input_exprs.push_back(
+      helib::buildQuery("( 0 AND 1 ) OR ( ( 2 AND 3 ) AND ( 4 OR 5 ) )"));
+  // test spaces, order of precedence, triple char operands
   input_exprs.push_back(helib::buildQuery("0 AND 1 AND 2"));
   input_exprs.push_back(helib::buildQuery("( 0 OR 1 AND 2 )"));
   input_exprs.push_back(helib::buildQuery("0 AND 1 OR 2"));
-  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 ) AND ( 4 OR 5 )"));
-  //test brackets
+  input_exprs.push_back(
+      helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 ) AND ( 4 OR 5 )"));
+  // test brackets
   input_exprs.push_back(helib::buildQuery("(0 AND 1) OR (2 AND 3)"));
   input_exprs.push_back(helib::buildQuery("(0 AND (1 AND (2 AND 3)))"));
   std::vector<std::string> expected;
@@ -1138,13 +1144,14 @@ TEST(TestPartialMatch, TestBuildQueryExprFromInfixString) {
   expected.push_back("0 1 2 3 && && &&");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= "<<i;
+    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
   }
 }
 
-TEST(TestPartialMatch, TestBuildQueryExprFromTable){
+TEST(TestPartialMatch, TestBuildQueryExprFromTable)
+{
   // width 1 columns
-  helib::Table t0({"name","age","weight"});
+  helib::Table t0({"name", "age", "weight"});
   t0.append("height");
   std::vector<helib::QueryExpr> input_exprs;
   std::vector<std::string> expected;
@@ -1153,8 +1160,10 @@ TEST(TestPartialMatch, TestBuildQueryExprFromTable){
   input_exprs.push_back(t0.buildQueryExpr("( age OR weight )"));
   input_exprs.push_back(t0.buildQueryExpr("name OR age AND weight"));
   input_exprs.push_back(t0.buildQueryExpr("( name OR age ) AND weight"));
-  input_exprs.push_back(t0.buildQueryExpr("( name AND age ) OR ( weight AND height )"));
-  input_exprs.push_back(t0.buildQueryExpr("(name AND age AND weight AND height)"));
+  input_exprs.push_back(
+      t0.buildQueryExpr("( name AND age ) OR ( weight AND height )"));
+  input_exprs.push_back(
+      t0.buildQueryExpr("(name AND age AND weight AND height)"));
   expected.push_back("0 1 &&");
   expected.push_back("0 1 ||");
   expected.push_back("1 2 ||");
@@ -1164,14 +1173,18 @@ TEST(TestPartialMatch, TestBuildQueryExprFromTable){
   expected.push_back("0 1 && 2 && 3 &&");
 
   // multiwidth columns
-  helib::Table t1({"country","capital","population","currency"},{2,1,1,2});
+  helib::Table t1({"country", "capital", "population", "currency"},
+                  {2, 1, 1, 2});
   input_exprs.push_back(t1.buildQueryExpr("country AND capital"));
   input_exprs.push_back(t1.buildQueryExpr("country OR capital"));
   input_exprs.push_back(t1.buildQueryExpr("( capital OR population )"));
   input_exprs.push_back(t1.buildQueryExpr("country OR capital AND population"));
-  input_exprs.push_back(t1.buildQueryExpr("( country OR capital ) AND population"));
-  input_exprs.push_back(t1.buildQueryExpr("( country AND capital ) OR ( population AND currency )"));
-  input_exprs.push_back(t1.buildQueryExpr("(country AND capital AND population AND currency)"));
+  input_exprs.push_back(
+      t1.buildQueryExpr("( country OR capital ) AND population"));
+  input_exprs.push_back(t1.buildQueryExpr(
+      "( country AND capital ) OR ( population AND currency )"));
+  input_exprs.push_back(
+      t1.buildQueryExpr("(country AND capital AND population AND currency)"));
   expected.push_back("0 1 && 2 &&");
   expected.push_back("0 1 && 2 ||");
   expected.push_back("2 3 ||");
@@ -1182,14 +1195,18 @@ TEST(TestPartialMatch, TestBuildQueryExprFromTable){
 
   // multiword columns
 
-  helib::Table t2({"first name","last name", "date of birth", "address"});
+  helib::Table t2({"first name", "last name", "date of birth", "address"});
   input_exprs.push_back(t2.buildQueryExpr("first name AND last name"));
   input_exprs.push_back(t2.buildQueryExpr("first name OR last name"));
   input_exprs.push_back(t2.buildQueryExpr("( last name OR date of birth )"));
-  input_exprs.push_back(t2.buildQueryExpr("first name OR last name AND date of birth"));
-  input_exprs.push_back(t2.buildQueryExpr("( first name OR last name ) AND date of birth"));
-  input_exprs.push_back(t2.buildQueryExpr("( first name AND last name ) OR ( date of birth AND address )"));
-  input_exprs.push_back(t2.buildQueryExpr("(first name AND last name AND date of birth AND address)"));
+  input_exprs.push_back(
+      t2.buildQueryExpr("first name OR last name AND date of birth"));
+  input_exprs.push_back(
+      t2.buildQueryExpr("( first name OR last name ) AND date of birth"));
+  input_exprs.push_back(t2.buildQueryExpr(
+      "( first name AND last name ) OR ( date of birth AND address )"));
+  input_exprs.push_back(t2.buildQueryExpr(
+      "(first name AND last name AND date of birth AND address)"));
   expected.push_back("0 1 &&");
   expected.push_back("0 1 ||");
   expected.push_back("1 2 ||");
@@ -1199,13 +1216,14 @@ TEST(TestPartialMatch, TestBuildQueryExprFromTable){
   expected.push_back("0 1 && 2 && 3 &&");
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= "<<i;
+    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
   }
 }
 
-TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
+TEST(TestPartialMatch, TestBuildQueryBuilderFromTable)
+{
   // width 1 columns
-  helib::Table t0({"name","age","weight"});
+  helib::Table t0({"name", "age", "weight"});
   t0.append("height");
   std::vector<helib::QueryBuilder> input_exprs;
   std::vector<std::string> expected;
@@ -1214,8 +1232,10 @@ TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
   input_exprs.push_back(t0.buildQueryBuilder("( age OR weight )"));
   input_exprs.push_back(t0.buildQueryBuilder("name OR age AND weight"));
   input_exprs.push_back(t0.buildQueryBuilder("( name OR age ) AND weight"));
-  input_exprs.push_back(t0.buildQueryBuilder("( name AND age ) OR ( weight AND height )"));
-  input_exprs.push_back(t0.buildQueryBuilder("(name AND age AND weight AND height)"));
+  input_exprs.push_back(
+      t0.buildQueryBuilder("( name AND age ) OR ( weight AND height )"));
+  input_exprs.push_back(
+      t0.buildQueryBuilder("(name AND age AND weight AND height)"));
   expected.push_back("0 1 &&");
   expected.push_back("0 1 ||");
   expected.push_back("1 2 ||");
@@ -1225,30 +1245,39 @@ TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
   expected.push_back("0 1 && 2 && 3 &&");
 
   // multiwidth columns
-  helib::Table t1({"country","capital","population","currency"},{2,1,1,2});
+  helib::Table t1({"country", "capital", "population", "currency"},
+                  {2, 1, 1, 2});
   input_exprs.push_back(t1.buildQueryBuilder("country AND capital"));
   input_exprs.push_back(t1.buildQueryBuilder("country OR capital"));
   input_exprs.push_back(t1.buildQueryBuilder("( capital OR population )"));
-  input_exprs.push_back(t1.buildQueryBuilder("country OR capital AND population"));
-  input_exprs.push_back(t1.buildQueryBuilder("( country OR capital ) AND population"));
-  input_exprs.push_back(t1.buildQueryBuilder("( country AND capital ) OR ( population AND currency )"));
-  input_exprs.push_back(t1.buildQueryBuilder("(country AND capital AND population AND currency)"));
+  input_exprs.push_back(
+      t1.buildQueryBuilder("country OR capital AND population"));
+  input_exprs.push_back(
+      t1.buildQueryBuilder("( country OR capital ) AND population"));
+  input_exprs.push_back(t1.buildQueryBuilder(
+      "( country AND capital ) OR ( population AND currency )"));
+  input_exprs.push_back(t1.buildQueryBuilder(
+      "(country AND capital AND population AND currency)"));
   expected.push_back("0 1 && 2 &&");
   expected.push_back("0 1 && 2 ||");
   expected.push_back("2 3 ||");
   expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 || 3 &&");  
+  expected.push_back("0 1 && 2 || 3 &&");
   expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
   expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
 
-  helib::Table t2({"first name","last name", "date of birth", "address"});
+  helib::Table t2({"first name", "last name", "date of birth", "address"});
   input_exprs.push_back(t2.buildQueryBuilder("first name AND last name"));
   input_exprs.push_back(t2.buildQueryBuilder("first name OR last name"));
   input_exprs.push_back(t2.buildQueryBuilder("( last name OR date of birth )"));
-  input_exprs.push_back(t2.buildQueryBuilder("first name OR last name AND date of birth"));
-  input_exprs.push_back(t2.buildQueryBuilder("( first name OR last name ) AND date of birth"));
-  input_exprs.push_back(t2.buildQueryBuilder("( first name AND last name ) OR ( date of birth AND address )"));
-  input_exprs.push_back(t2.buildQueryBuilder("(first name AND last name AND date of birth AND address)"));
+  input_exprs.push_back(
+      t2.buildQueryBuilder("first name OR last name AND date of birth"));
+  input_exprs.push_back(
+      t2.buildQueryBuilder("( first name OR last name ) AND date of birth"));
+  input_exprs.push_back(t2.buildQueryBuilder(
+      "( first name AND last name ) OR ( date of birth AND address )"));
+  input_exprs.push_back(t2.buildQueryBuilder(
+      "(first name AND last name AND date of birth AND address)"));
   expected.push_back("0 1 &&");
   expected.push_back("0 1 ||");
   expected.push_back("1 2 ||");
@@ -1256,14 +1285,10 @@ TEST(TestPartialMatch, TestBuildQueryBuilderFromTable){
   expected.push_back("0 1 || 2 &&");
   expected.push_back("0 1 && 2 3 && ||");
   expected.push_back("0 1 && 2 && 3 &&");
-  
+
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= "<<i;
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
-
-
-
-
 }
 INSTANTIATE_TEST_SUITE_P(variousParameters,
                          TestPartialMatch,

@@ -377,7 +377,7 @@ QueryExpr buildQuery(const std::string& inFixQuery)
 
   // add spaces in the input stream before and after brackets
   std::stringstream input{" "};
-  for (int i = 0; i < inFixQuery.size(); i++) {
+  for (long i = 0; i < long(inFixQuery.size()); i++) {
     if (inFixQuery[i] == '(')
       input << " ( ";
     else if (inFixQuery[i] == ')')
@@ -476,8 +476,7 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 
   /**
    * @brief Constructor.
@@ -492,8 +491,7 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 };
 
 /**
@@ -592,7 +590,7 @@ private:
     std::stack<char> st;
     // add spaces in the input stream before and after brackets
     std::stringstream input{" "};
-    for (int i = 0; i < s.size(); i++) {
+    for (long i = 0; i < long(s.size()); i++) {
       if (s[i] == '(')
         input << " ( ";
       else if (s[i] == ')')
@@ -661,7 +659,7 @@ private:
     st.push('('); // push open bracket onto stack
     s += ")";     // append closing bracket to string
 
-    for (int i = 0; i < s.length(); i++) {
+    for (long i = 0; i < long(s.length()); i++) {
       char c = s[i];
       switch (c) {
       case '&':
@@ -827,8 +825,7 @@ public:
       col_names(cols),
       col_dims(std::vector(cols.size(), 1L)),
       col_count(cols.size())
-  {
-  }
+  {}
 
   /**
    * @brief Construct a new Table object from column labels and dimensions.
@@ -897,7 +894,7 @@ public:
     std::stack<QueryExpr> operandStack; // stack for operands
     // add spaces in the input stream before and after brackets
     std::stringstream input{" "};
-    for (int i = 0; i < s.size(); i++) {
+    for (long i = 0; i < long(s.size()); i++) {
       if (s[i] == '(')
         input << " ( ";
       else if (s[i] == ')')
@@ -981,7 +978,7 @@ private:
   {
     long current_index = 0;
     std::unordered_map<std::string, QueryExpr> operands;
-    for (int i = 0; i < col_names.size(); i++) {
+    for (long i = 0; i < long(col_names.size()); i++) {
       // assert dim > 0?
       QueryExpr op = makeQueryExpr(current_index);
       current_index++;
@@ -999,7 +996,7 @@ private:
   {
     long current_index = 0;
     std::unordered_map<std::string, std::string> operands;
-    for (int i = 0; i < col_names.size(); i++) {
+    for (long i = 0; i < long(col_names.size()); i++) {
       // assert dim > 0?
       std::string op = std::to_string(current_index);
       current_index++;
@@ -1034,7 +1031,7 @@ Table makeTableFromString(const std::string& s)
   // construct a stringstream to parse input. Need spaces before and after
   // commas and skip final bracket
   std::stringstream input{" "};
-  for (int i = prefix.length(); i < s.length() - 1; i++) {
+  for (long i = prefix.length(); i < long(s.length()) - 1; i++) {
     if (s[i] == ',')
       input << " , ";
     else {
@@ -1076,8 +1073,7 @@ public:
    **/
   Database(const Matrix<TXT>& M, std::shared_ptr<const Context> c) :
       data(M), context(c)
-  {
-  }
+  {}
 
   // FIXME: Should this option really exist?
   /**
@@ -1091,8 +1087,7 @@ public:
   Database(const Matrix<TXT>& M, const Context& c) :
       data(M),
       context(std::shared_ptr<const helib::Context>(&c, [](auto UNUSED p) {}))
-  {
-  }
+  {}
 
   // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
   /**
