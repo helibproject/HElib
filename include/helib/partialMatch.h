@@ -253,22 +253,21 @@ private:
  **/
 inline QueryExpr makeQueryExpr(long cl)
 {
-  ColNumber col(cl);
-  return QueryExpr(std::make_shared<ColNumber>(col));
+  return QueryExpr(std::make_shared<ColNumber>(ColNumber(cl)));
 }
 
 /**
  * @class And
  * @brief An object representing the logical `AND` expression which inherits
- *from `Expr`.
+ * from `Expr`.
  **/
 class And : public Expr
 {
 public:
   /**
    * @brief Function for returning the logical `AND` expression in reverse
-   *polish notation where the `AND` operation is represented by `&&` and each
-   *operand is a column number.
+   * polish notation where the `AND` operation is represented by `&&` and each
+   * operand is a column number.
    * @return A string representing the `AND` expression in reverse polish
    * notation.
    **/
@@ -346,7 +345,9 @@ inline QueryExpr operator||(const QueryExpr& lhs, const QueryExpr& rhs)
 }
 
 /**
- * @brief free copy of isNumber to use in this function
+ * @brief Check if string is a number.
+ * @note This is a copy of isNumber to use in function below.
+ * TODO: Think about this. Does this need to be public?
  */
 bool isNumber(const std::string& s)
 {
@@ -355,10 +356,11 @@ bool isNumber(const std::string& s)
 }
 
 /**
- * @brief Construct a `QueryExpr` from a string
- * @param inFixQuery string of the logical query to build. Space separated,
- * operators of the form AND, OR
- * @note uses Dijkstra two stack algorithm to construct a QueryExpr
+ * @brief Construct a `QueryExpr` from a string.
+ * @param inFixQuery string of the logical query to build. Space separated with
+ * operators of the form AND, OR.
+ * @return A `QueryExpr` object of the string `inFixQuery` in polish notation.
+ * @note Uses Dijkstra two stack algorithm to construct a `QueryExpr`.
  **/
 QueryExpr buildQuery(const std::string& inFixQuery)
 {
@@ -377,23 +379,23 @@ QueryExpr buildQuery(const std::string& inFixQuery)
 
   // add spaces in the input stream before and after brackets
   std::stringstream input{" "};
-  for (long i = 0; i < long(inFixQuery.size()); i++) {
-    if (inFixQuery[i] == '(')
+  for (const auto& c : inFixQuery) {
+    if (c == '(')
       input << " ( ";
-    else if (inFixQuery[i] == ')')
+    else if (c == ')')
       input << " ) ";
     else
-      input << inFixQuery[i];
+      input << c;
   }
   input << " )";
   operatorStack.push('(');
   std::string symbol;
   while (input >> symbol) {
-    if (!symbol.compare("("))
+    if (symbol == "(")
       operatorStack.push('(');
-    else if (!symbol.compare("AND") || !symbol.compare("OR")) {
+    else if (symbol == "AND" || symbol == "OR") {
       if ((operatorStack.top() == '&') ||
-          ((operatorStack.top() == '|') && !symbol.compare("OR"))) {
+          ((operatorStack.top() == '|') && symbol == "OR")) {
         // cases where precedence needs to be handled
         QueryExpr rhs = operandStack.top();
         operandStack.pop();
@@ -404,8 +406,8 @@ QueryExpr buildQuery(const std::string& inFixQuery)
         operatorStack.pop();
       }
       // push new operator to the stack
-      operatorStack.push((!symbol.compare("AND")) ? '&' : '|');
-    } else if (!symbol.compare(")")) {
+      operatorStack.push((symbol == "AND") ? '&' : '|');
+    } else if (symbol == ")") {
       // flush the operator stack
       while (operatorStack.top() != '(') {
         QueryExpr rhs = operandStack.top();
@@ -417,9 +419,12 @@ QueryExpr buildQuery(const std::string& inFixQuery)
         operatorStack.pop();
       }
       operatorStack.pop(); // pop the "("
-    } else {
-      // Should be a number
-      assertTrue(isNumber(symbol), "String is not a number: '" + symbol + "'");
+    } else {               // Should be a number
+      // Lambda that checks if a string is a number (i.e. all chars are digits)
+      auto isNum = [&symbol]() {
+        return std::all_of(symbol.begin(), symbol.end(), ::isdigit);
+      };
+      assertTrue(isNum(), "String is not a number: '" + symbol + "'");
       operandStack.push(makeQueryExpr(std::stoi(symbol)));
     }
   }
