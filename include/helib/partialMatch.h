@@ -118,7 +118,7 @@ Matrix<Ctxt> calculateMasks(const EncryptedArray& ea,
  * @brief Given a mask and information about the query to be performed,
  * calculates a score for each matching element signified by the mask.
  * @tparam TXT type of the mask matrix. Must be a `Ptxt` or `Ctxt`.
- * @param index_sets The set of indicies signifying which columns of the mask
+ * @param index_sets The set of indices signifying which columns of the mask
  * to query.
  * @param offsets The constant term to be added to the final score of each
  * queried column.
@@ -229,7 +229,6 @@ public:
       context(std::shared_ptr<const helib::Context>(&c, [](auto UNUSED p) {}))
   {}
 
-  // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
   /**
    * @brief Function for performing a database lookup given a query expression
    * and query data.
@@ -244,7 +243,6 @@ public:
   auto contains(const QueryType& lookup_query,
                 const Matrix<TXT2>& query_data) const;
 
-  // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
   /**
    * @brief Function for performing a weighted partial match given a query
    * expression and query data.

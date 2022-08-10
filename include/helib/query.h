@@ -1,5 +1,20 @@
-// Copyright (C) 2022 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0
+/* Copyright (C) 2020 IBM Corp.
+ * This program is Licensed under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. See accompanying LICENSE file.
+ */
+
+/* Copyright (C) 2022 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * TODO: Add the specific contributions
+ */
 
 #ifndef HELIB_QUERY_H
 #define HELIB_QUERY_H
@@ -10,10 +25,13 @@
 /**
  * @file query.h
  * @brief Implementation of classes and functions related to HE queries.
+ * @note This code is to be considered experimental and APIs can be expected to
+ * change without prior warning.
  **/
 
 namespace helib {
 
+// Forward declarations
 struct Expr;
 class ColNumber;
 
@@ -166,24 +184,26 @@ inline QueryExpr operator||(const QueryExpr& lhs, const QueryExpr& rhs)
 }
 
 /**
- * @brief Check if string is a number.
- * @note This is a copy of isNumber to use in function below.
- * TODO: Think about this. Does this need to be public?
+ * @brief Check if string is a number. i.e. All characters are digits.
+ * @param s The input string to be checked.
+ * @return bool `True` if all chars are digits, `False` otherwise.
  */
-bool isNumber(const std::string& s)
+inline bool isNumber(const std::string& s)
 {
   // Positive only
   return std::all_of(s.begin(), s.end(), ::isdigit);
 }
 
 /**
- * @brief Construct a `QueryExpr` from a string.
+ * @brief Construct a `QueryExpr` from a string using Dijkstra's two stack
+ * algorithm.
  * @param inFixQuery string of the logical query to build. Space separated with
  * operators of the form AND, OR.
  * @return A `QueryExpr` object of the string `inFixQuery` in polish notation.
- * @note Uses Dijkstra two stack algorithm to construct a `QueryExpr`.
+ * @note This free function is an alternative to the constructor of
+ * `QueryBuilder` that accepts a string input.
  **/
-QueryExpr buildQuery(const std::string& inFixQuery)
+inline QueryExpr buildQuery(const std::string& inFixQuery)
 {
   // checks for well formed query: no consecutive operators, spaces around ANDs
   // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
@@ -241,11 +261,7 @@ QueryExpr buildQuery(const std::string& inFixQuery)
       }
       operatorStack.pop(); // pop the "("
     } else {               // Should be a number
-      // Lambda that checks if a string is a number (i.e. all chars are digits)
-      auto isNum = [&symbol]() {
-        return std::all_of(symbol.begin(), symbol.end(), ::isdigit);
-      };
-      assertTrue(isNum(), "String is not a number: '" + symbol + "'");
+      assertTrue(isNumber(symbol), "String is not a number: '" + symbol + "'");
       operandStack.push(makeQueryExpr(std::stoi(symbol)));
     }
   }
@@ -341,10 +357,10 @@ public:
 
   /**
    * @brief Constructor.
-   * @param expr query string to build, in infix notation.
+   * @param expr Query string to build, in infix notation.
    * @note The expression is evaluated to reverse polish notation.
    **/
-  QueryBuilder(const std::string query) : query_str(convertToPostFix(query)) {}
+  QueryBuilder(const std::string& query) : query_str(convertToPostFix(query)) {}
 
   /**
    * @brief Function for building the `QueryType` object from the expression.
@@ -385,25 +401,43 @@ public:
                      containsOR);
   }
 
-  // function to return query_str
+  /**
+   * @brief Getter function that returns the `query_str`.
+   * @return The string representation of the query.
+   **/
   std::string getQueryString() const { return query_str; }
 
 private:
   std::string query_str;
 
+  // Utility function for adding spaces to an input stream before and after
+  // brackets given a query string.
+  void addSpacesAroundBrackets(std::stringstream& ss, const std::string& s)
+  {
+    for (const auto& c : s) {
+      if (c == '(')
+        ss << " ( ";
+      else if (c == ')')
+        ss << " ) ";
+      else
+        ss << c;
+    }
+    ss << " )";
+  }
+
   /**
-   * @brief Function that converts a space separated infix query with ANDs, ORs,
-   *and NOTs to reverse polish notation.
+   * @brief Function that converts a space separated infix query with ANDs and
+   * ORs to reverse polish notation.
    * @param s Input string in infix notation.
-   * @return a new string in polish notation.
+   * @return A new string in polish notation.
    **/
   inline std::string convertToPostFix(const std::string& s)
   {
     // checks for well formed query: no consecutive operators, spaces around
-    // ANDs
-    // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
+    // ANDs and ORs, no consecutive operands (doesn't reject e.g. "(x y")
     std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
     std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
+    // TODO
     // std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
@@ -414,45 +448,37 @@ private:
                 "invalid query, found consecutive arguments");**/
     std::string ret = "";
     std::stack<char> st;
-    // add spaces in the input stream before and after brackets
+
+    // Add spaces in the input stream before and after brackets
     std::stringstream input{" "};
-    for (long i = 0; i < long(s.size()); i++) {
-      if (s[i] == '(')
-        input << " ( ";
-      else if (s[i] == ')')
-        input << " ) ";
-      else
-        input << s[i];
-    }
-    input << " )";
+    addSpacesAroundBrackets(input, s);
     st.push('(');
 
     std::string symbol;
     while (input >> symbol) {
-      if (!symbol.compare("(")) {
+      if (symbol == "(") {
         st.push('(');
-      } else if (!symbol.compare("AND") && st.top() == '&') {
+      } else if (symbol == "AND" && st.top() == '&') {
         // in a multiAND clause
         ret += " &&";
-      } else if (!symbol.compare("AND")) {
+      } else if (symbol == "AND") {
         // not in a multiAND clause
         st.push('&');
-      } else if (!symbol.compare("OR") && st.top() == '&') {
+      } else if (symbol == "OR" && st.top() == '&') {
         //&& has higher precedence than ||
         ret += " &&";
         st.pop();
         st.push('|');
-      } else if (!symbol.compare("OR") && st.top() == '|') {
+      } else if (symbol == "OR" && st.top() == '|') {
         // in a multiOR clause
         ret += " ||";
-      } else if (!symbol.compare("OR")) {
+      } else if (symbol == "OR") {
         st.push('|');
-      } else if (!symbol.compare(")")) { // empty stack until hit a "("
+      } else if (symbol == ")") { // empty stack until hit a "("
         while (st.top() != '(') {
           // add either " &&" or " ||"
-          ret += " ";
-          ret += st.top();
-          ret += st.top();
+          // Note: For some reason this doesn't work with +=
+          ret = ret + " " + st.top() + st.top();
           st.pop();
         }
         st.pop(); // pop the "("
@@ -470,14 +496,16 @@ private:
 
     return ret;
   }
+
   /**
    * @brief Free function that converts a logical expression in infix notation
-   *to reverse polish notation.
-   * @param s Input string in infix notation. Can have nonbracketed clauses,
-   *single operators (|,&), and multichar arguments
+   * to reverse polish notation.
+   * @param s Input string in infix notation. Can have non-bracketed clauses,
+   * single operators (|,&), and multi-character arguments
    * @return The string in polish notation with double operators separated by
-   *spaces.
+   * spaces.
    **/
+  // TODO
   inline std::string convertToPostFixOld(std::string s)
   {
     std::string ret = "";
@@ -490,7 +518,7 @@ private:
       switch (c) {
       case '&':
         if (st.top() == '&') {
-          ret += " &&"; // in a nonbinary And clause
+          ret += " &&"; // in a non-binary And clause
           while (s[i + 1] == '&')
             i++; // skip next index as it's another &
         } else {
@@ -575,12 +603,6 @@ private:
     std::cout << "\n";
   }
 
-  bool isNumber(const std::string& s) const
-  {
-    // Positive only
-    return std::all_of(s.begin(), s.end(), ::isdigit);
-  }
-
   vecvec expandOr(const std::string& s) const
   {
     std::stack<vecvec> convertStack;
@@ -591,7 +613,7 @@ private:
     std::string symbol;
 
     while (input >> symbol) {
-      if (!symbol.compare("&&")) {
+      if (symbol == "&&") {
         // Squash the top into penultimate.
         auto op = convertStack.top();
         convertStack.pop();
@@ -668,12 +690,14 @@ public:
         "Error, number of columns and number of dimensions mismatch");
     col_count = std::accumulate(dims.begin(), dims.end(), 0);
   }
+
   void append(std::string col, long dim = 1L)
   {
     col_names.push_back(col);
     col_dims.push_back(dim);
     col_count += dim;
   }
+
   /**
    * @brief insert a new column at index
    * @param index the Table index to insert the new column, using zero ordering
@@ -687,6 +711,7 @@ public:
     col_dims.insert(col_dims.begin() + index, dim);
     col_count += dim;
   }
+
   /**
    * @brief resize the width of a column
    * @param index the column to resize
@@ -699,6 +724,7 @@ public:
     col_count += (newdim - col_dims[index]);
     col_dims[index] = newdim;
   }
+
   void erase(long index)
   {
     // sanitise/check index?
@@ -706,6 +732,7 @@ public:
     col_names.erase(col_names.begin() + index);
     col_dims.erase(col_dims.begin() + index);
   }
+
   /**
    * @brief Build a `QueryExpr` object from a table query.
    *
@@ -733,10 +760,9 @@ public:
     std::string symbol;
     std::string col = "";
     while (input >> symbol) {
-      if (!symbol.compare("("))
+      if (symbol == "(")
         operatorStack.push('(');
-      else if (!symbol.compare("AND") || !symbol.compare("OR") ||
-               !symbol.compare(")")) {
+      else if (symbol == "AND" || symbol == "OR" || symbol == ")") {
         // make an operator for the operator stack
         if (col.length() != 0) {
           assertTrue(operands.find(col) != operands.end(),
@@ -745,9 +771,9 @@ public:
           col = "";
         }
 
-        if (!symbol.compare("AND") || !symbol.compare("OR")) {
+        if (symbol == "AND" || symbol == "OR") {
           if ((operatorStack.top() == '&') ||
-              ((operatorStack.top() == '|') && !symbol.compare("OR"))) {
+              ((operatorStack.top() == '|') && symbol == "OR")) {
             // cases where precedence needs to be handled
             QueryExpr rhs = operandStack.top();
             operandStack.pop();
@@ -758,7 +784,7 @@ public:
             operatorStack.pop();
           }
           // push new operator to the stack
-          operatorStack.push((!symbol.compare("AND")) ? '&' : '|');
+          operatorStack.push((symbol == "AND") ? '&' : '|');
         } else {
           // must be a ')': flush the operator stack
           while (operatorStack.top() != '(') {
@@ -800,6 +826,7 @@ private:
   std::vector<std::string> col_names;
   std::vector<long> col_dims;
   long col_count;
+
   std::unordered_map<std::string, QueryExpr> buildOperands() const
   {
     long current_index = 0;
@@ -868,7 +895,7 @@ Table makeTableFromString(const std::string& s)
   std::string symbol;
   std::string col = "";
   while (input >> symbol) {
-    if (!symbol.compare(",")) {
+    if (symbol == ",") {
       columns.push_back(col);
       col = "";
     } else {
