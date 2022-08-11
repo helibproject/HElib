@@ -19,6 +19,8 @@
 #ifndef HELIB_QUERY_H
 #define HELIB_QUERY_H
 
+#include <helib/Matrix.h>
+
 #include <stack>
 #include <regex>
 
@@ -873,7 +875,7 @@ private:
  * @return Table with labels as column labels and every ctxt dimension equal
  * to 1.
  */
-Table makeTableFromString(const std::string& s)
+inline Table makeTableFromString(const std::string& s)
 {
   // check string is of the form Table()
   std::string prefix = "Table(";
