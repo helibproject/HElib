@@ -187,7 +187,7 @@ TEST(TestQuery, TestBuildQueryBuilderFromTable)
   expected.push_back("0 1 && 2 3 && ||");
   expected.push_back("0 1 && 2 && 3 &&");
 
-  // multiwidth columns
+  // Multi-width columns
   helib::Table t1({"country", "capital", "population", "currency"},
                   {2, 1, 1, 2});
   input_exprs.push_back(t1.buildQueryBuilder("country AND capital"));
@@ -209,6 +209,7 @@ TEST(TestQuery, TestBuildQueryBuilderFromTable)
   expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
   expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
 
+  // Multi-word columns
   helib::Table t2({"first name", "last name", "date of birth", "address"});
   input_exprs.push_back(t2.buildQueryBuilder("first name AND last name"));
   input_exprs.push_back(t2.buildQueryBuilder("first name OR last name"));

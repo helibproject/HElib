@@ -222,6 +222,7 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
 
   // add spaces in the input stream before and after brackets
   std::stringstream input{" "};
+  // TODO
   for (const auto& c : inFixQuery) {
     if (c == '(')
       input << " ( ";
@@ -507,7 +508,7 @@ private:
    * @return The string in polish notation with double operators separated by
    * spaces.
    **/
-  // TODO
+  // TODO: Delete this function
   inline std::string convertToPostFixOld(std::string s)
   {
     std::string ret = "";
@@ -656,34 +657,34 @@ private:
 };
 
 /**
+ * @class Table
  * @brief A class for converting cleartext queries with column labels to PSI
  * queries with column numbers.
- * Column labels are stored in col_names.
+ * Column labels are stored in `col_names`.
  * Optional support for columns that are wider than a single ciphertext. This is
- * stored in col_dims.
+ * stored in `col_dims`.
  */
 class Table
 {
 public:
   /**
-   * @brief Construct a new Table object from column labels only.
+   * @brief Construct a new `Table` object from column labels only.
    * Constructs a table which has all columns of ctxt width = 1.
-   * @param cols tuple of column labels
+   * @param cols Tuple of column labels.
    */
-
-  Table(std::vector<std::string> cols) :
+  Table(const std::vector<std::string>& cols) :
       col_names(cols),
       col_dims(std::vector(cols.size(), 1L)),
       col_count(cols.size())
   {}
 
   /**
-   * @brief Construct a new Table object from column labels and dimensions.
-   * @param cols tuple of column labels
-   * @param dims tuple of column ciphertext dimensions
+   * @brief Construct a new `Table` object from column labels and dimensions.
+   * @param cols tuple of column labels.
+   * @param dims tuple of column ciphertext dimensions.
    */
-  // Should this assert all dims > 0?
-  Table(std::vector<std::string> cols, std::vector<long> dims) :
+  // Should this assert all dims > 0? TODO: Probably
+  Table(const std::vector<std::string>& cols, const std::vector<long>& dims) :
       col_names(cols), col_dims(dims)
   {
     assertEq<LogicError>(
@@ -693,7 +694,12 @@ public:
     col_count = std::accumulate(dims.begin(), dims.end(), 0);
   }
 
-  void append(std::string col, long dim = 1L)
+  /**
+   * @brief Append a new column to the end of the `Table`.
+   * @param col The column label.
+   * @param dim The ciphertext dimension of the new column. Default = 1.
+   */
+  void append(const std::string& col, long dim = 1L)
   {
     col_names.push_back(col);
     col_dims.push_back(dim);
@@ -701,23 +707,24 @@ public:
   }
 
   /**
-   * @brief insert a new column at index
-   * @param index the Table index to insert the new column, using zero ordering
-   * @param col the column label
-   * @param dim the ciphertext dimension of the new column
+   * @brief Insert a new column at index.
+   * @param index The `Table` index to insert the new column, using zero
+   * ordering.
+   * @param col The column label.
+   * @param dim The ciphertext dimension of the new column. Default = 1.
    */
-  void insert(long index, std::string col, long dim = 1L)
+  void insert(long index, const std::string& col, long dim = 1L)
   {
-    // sanitise/check index?
+    // sanitize/check index?
     col_names.insert(col_names.begin() + index, col);
     col_dims.insert(col_dims.begin() + index, dim);
     col_count += dim;
   }
 
   /**
-   * @brief resize the width of a column
-   * @param index the column to resize
-   * @param newdim the new column width
+   * @brief Resize the width of a column.
+   * @param index The column to resize.
+   * @param newdim The new column width.
    */
   void resize(long index, long newdim)
   {
@@ -727,9 +734,13 @@ public:
     col_dims[index] = newdim;
   }
 
+  /**
+   * @brief Erase a column at specified index.
+   * @param index The `Table` index to erase.
+   */
   void erase(long index)
   {
-    // sanitise/check index?
+    // sanitize/check index?
     col_count -= col_dims[index];
     col_names.erase(col_names.begin() + index);
     col_dims.erase(col_dims.begin() + index);
@@ -737,10 +748,9 @@ public:
 
   /**
    * @brief Build a `QueryExpr` object from a table query.
-   *
    * @param s A query with space separated ANDs and ORs and column labels as
    * operands.
-   * @return `QueryExpr` with database column numbers as operands.
+   * @return A `QueryExpr` object with database column numbers as operands.
    */
   QueryExpr buildQueryExpr(const std::string& s) const
   {
@@ -749,13 +759,14 @@ public:
     std::stack<QueryExpr> operandStack; // stack for operands
     // add spaces in the input stream before and after brackets
     std::stringstream input{" "};
-    for (long i = 0; i < long(s.size()); i++) {
-      if (s[i] == '(')
+    // TODO: Code duplication
+    for (const auto& c : s) {
+      if (c == '(')
         input << " ( ";
-      else if (s[i] == ')')
+      else if (c == ')')
         input << " ) ";
       else
-        input << s[i];
+        input << c;
     }
     input << " )";
     operatorStack.push('(');
@@ -768,9 +779,9 @@ public:
         // make an operator for the operator stack
         if (col.length() != 0) {
           assertTrue(operands.find(col) != operands.end(),
-                     "unrecognised column: '" + col + "'");
+                     "unrecognized column: '" + col + "'");
           operandStack.push(operands.at(col));
-          col = "";
+          col.clear();
         }
 
         if (symbol == "AND" || symbol == "OR") {
@@ -813,16 +824,23 @@ public:
     return operandStack.top();
   }
 
+  // TODO Is this really necessary? Rethink this function
+  /**
+   * @brief
+   * @param s
+   * @return A `QueryBuilder` object...
+   */
   QueryBuilder buildQueryBuilder(const std::string& s) const
   {
     std::unordered_map<std::string, std::string> operands =
         buildOperandStrings();
     std::string scopy = s;
-    for (std::string col : col_names) {
+    for (const auto& col : col_names) {
       scopy = std::regex_replace(scopy, std::regex(col), operands[col]);
     }
     return QueryBuilder(scopy);
   }
+
 
 private:
   std::vector<std::string> col_names;
@@ -866,14 +884,14 @@ private:
 };
 
 /**
- * @brief free function taking a table description of the form
- * Table(col1, col2, col3,...) and creates a Table object with
+ * @brief Free function taking a table description of the form
+ * `Table(col1, col2, col3,...)` and creates a `Table` object with
  * these column labels.
  *
- * @param s a string of the form Table( * , * , * , ...), with no commas
+ * @param s A string of the form `Table( * , * , * , ...)`, with no commas
  * in column labels.
- * @return Table with labels as column labels and every ctxt dimension equal
- * to 1.
+ * @return A `Table` object with labels as column labels and every ctxt
+ * dimension equal to 1.
  */
 inline Table makeTableFromString(const std::string& s)
 {
@@ -886,7 +904,10 @@ inline Table makeTableFromString(const std::string& s)
   // construct a stringstream to parse input. Need spaces before and after
   // commas and skip final bracket
   std::stringstream input{" "};
-  for (long i = prefix.length(); i < long(s.length()) - 1; i++) {
+  for (long i = prefix.length(); i < long(s.length()) - 1; ++i) {
+    // TODO
+    // count = s.length() - prefix.length() - 1
+    // string.substr(start, count);
     if (s[i] == ',')
       input << " , ";
     else {
@@ -899,7 +920,7 @@ inline Table makeTableFromString(const std::string& s)
   while (input >> symbol) {
     if (symbol == ",") {
       columns.push_back(col);
-      col = "";
+      col.clear();
     } else {
       col += (col.length() == 0) ? symbol : " " + symbol;
     }
