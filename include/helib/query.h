@@ -197,6 +197,27 @@ inline bool isNumber(const std::string& s)
 }
 
 /**
+ * @brief Utility function that splits a string based on specified delimiter(s).
+ * @param ss The `std::stringstream` that will hold the space separated
+ * resultant string.
+ * @param s The input string to split.
+ * @param delims A string of characters which are considered to be delimiters.
+ */
+// TODO Not sure how useful this function actually is
+inline void splitString(const std::stringstream& ss,
+                        const std::string& s,
+                        const std::string& delims)
+{
+  long pos;
+  long prev = 0;
+  while ((pos = s.find_first_of(delims, prev)) != std::string::npos) {
+    if (pos != prev)
+      ss << s.substr(prev, pos - prev) << " ";
+    prev = pos + 1;
+  }
+}
+
+/**
  * @brief Construct a `QueryExpr` from a string using Dijkstra's two stack
  * algorithm.
  * @param inFixQuery string of the logical query to build. Space separated with
@@ -417,8 +438,21 @@ private:
 
   // Utility function for adding spaces to an input stream before and after
   // brackets given a query string.
-  void addSpacesAroundBrackets(std::stringstream& ss, const std::string& s)
+  void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
   {
+    std::unordered_set<char> set = {')', '(', ','};
+    for (const auto& c : s) {
+      if (set.count(c) == 1) {
+        ss << " " << c << " ";
+        continue;
+      }
+      ss << c;
+    }
+
+    std::replace(s.begin(), s.end(), ')', " ) ");
+    std::replace(s.begin(), s.end(), '(', " ( ");
+    std::replace(s.begin(), s.end(), ',', " , ");
+
     for (const auto& c : s) {
       if (c == '(')
         ss << " ( ";
@@ -669,6 +703,17 @@ private:
 class Table
 {
 public:
+  // TODO Write constructor Table(const std::string& tableString)
+
+  /**
+   * @brief Construct a new `Table` object from a table string.
+   * @param table The input string listing the names and dimensions of the
+   * columns of the table.
+   */
+  Table(const std::string& table)
+  {
+    buildTableFromStr(table);
+  }
   /**
    * @brief Construct a new `Table` object from column labels only.
    * Constructs a table which has all columns of ctxt width = 1.
@@ -826,31 +871,121 @@ public:
     return operandStack.top();
   }
 
-  // TODO Is this really necessary? Rethink this function
   /**
-   * @brief
-   * @param s
-   * @return A `QueryBuilder` object...
+   * @brief Given a Table query string, convert this into a query expression
+   * string by replacing the column names with indices.
+   * i.e. col1 AND col2 OR col3 -> 0 AND 1 OR 2
+   * @param s The input query string with column names.
+   * @return A string with column numbers that can be provided to a
+   * `QueryBuilder`.
    */
-  QueryBuilder buildQueryBuilder(const std::string& s) const
+  std::string buildQueryString(const std::string& s) const
   {
-    std::unordered_map<std::string, std::string> operands =
-        buildOperandStrings();
-    std::string scopy = s;
-    for (const auto& col : col_names) {
-      scopy = std::regex_replace(scopy, std::regex(col), operands[col]);
+    // TODO: Add missing checks like no multi-word etc.
+    std::stringstream ss(" ");
+    addSpacesAroundBrackets(ss, s);
+    std::ostringstream out;
+    std::string symbol;
+    // TODO: This will add a trailing space
+    while (ss >> symbol) {
+      // Replace column names with their index
+      if (columns.count(symbol) == 1) {
+        out << columns.at(symbol).first() << " ";
+        // Append any additional columns if part of a composite column
+        for (long i = 1; i < columns.at(symbol).second(); ++i) {
+          out << "AND " << columns.at(symbol).first() + i << " ";
+        }
+      } else {
+        out << symbol << " ";
+      }
     }
-    return QueryBuilder(scopy);
+    return out.str();
   }
   std::vector<std::string> getColNames(){ return col_names; }
   std::vector<long> getColDims(){ return col_dims; }
   long getColCount(){ return col_count; }
 
-
 private:
-  std::vector<std::string> col_names;
-  std::vector<long> col_dims;
-  long col_count;
+  static const std::unordered_set operators = {"AND", "OR", "NOT"};
+  // TODO std::unordered_map<std::string, std::pair<int, int>>
+  // key = column name, value = (index, dim)
+  std::unordered_map<std::string, std::pair<long, long>> columns;
+  // std::vector<std::string> col_names;
+  // std::vector<long> col_dims;
+  // long col_count;
+
+  // Utility function that build the Table object from a string description
+  void buildTableFromStr(const std::string& tableStr)
+  {
+    // check string is of the form Table()
+    // TODO Table -> TABLE
+    std::string prefix = "Table(";
+    assertTrue<LogicError>(s.rfind(prefix, 0) == 0,
+                           "string does not start with Table key word");
+    assertTrue<LogicError>(s[s.length() - 1] == ')',
+                           "string does not end with )");
+    // construct a stringstream to parse input. Need spaces before and after
+    // commas and skip final bracket
+    std::stringstream input{" "};
+    for (long i = prefix.length(); i < long(s.length()) - 1; ++i) {
+      // TODO
+      // count = s.length() - prefix.length() - 1
+      // string.substr(start, count);
+      if (s[i] == ',') {
+        input << " , ";
+      } else if (s[i] == '(') {
+        input << " ( ";
+      } else if (s[i] == ')') {
+        input << " ) ";
+      } else {
+        input << s[i];
+      }
+    }
+    std::vector<std::string> columns;
+    std::string symbol;
+    std::string col = "";
+    long index;
+    // TODO Deal with the dimensions i.e. TABLE(colname 2, ...)
+    // If no number is present assume it is 1?
+    while (input >> symbol) {
+      if (symbol == ",") { // TODO What happens if there's a leading comma?
+        // columns.push_back(col);
+        columns.insert({col, std::make_pair(index, 1L)});
+        ++index;
+        col.clear();
+      } else {
+        col += (col.length() == 0) ? symbol : " " + symbol;
+      }
+    }
+    columns.insert({col, std::make_pair(index, 1L)});
+
+    // std::stringstream ss;
+    // // Split the string by removing brackets and commas
+    // splitString(ss, s, "(), ");
+    // // Check the string starts with 'TABLE'
+    // std::string name;
+    // ss >> name;
+    // assertEq<InvalidArgumentError>("TABLE",
+                                   // name,
+                                   // "Invalid string format, must start with the \'TABLE\' keyword");
+    // std::ostringstream oss;
+    // long index = 0;
+    // long dim;
+    // TODO Just to start let's assume dimension is always given
+    // while (ss >> name) {
+      // // Check the value is not one of the reserved keywords
+      // assertNeq<InvalidArgument>(operators.count(symbol), 1, "Invalid column name: the following words are reserved {AND, OR, NOT}.");
+      // if (!isNumber(name)) { // Must be a column name
+        // assertEq<InvalidArgument>(columns.count(name), 0, "Duplicate column name detected."); 
+        // ss >> dim;
+        // columns.insert({name, std::make_pair(index, dim)});
+      // } else { // Must be a dimension
+        // // TODO Deal with optional dim
+      // }
+      // // TODO Should the index be the "actual" index of the column?
+      // index += dim + 1;
+    // }
+  }
 
   std::unordered_map<std::string, QueryExpr> buildOperands() const
   {
@@ -889,9 +1024,13 @@ private:
 };
 
 /**
+ * TODO This will be replaced by the constructor Table(const std::string& s)
  * @brief Free function taking a table description of the form
  * `Table(col1, col2, col3,...)` and creates a `Table` object with
  * these column labels.
+ *
+ * TABLE(name type(size), ...)
+ * TABLE(firstCol (2), ...)
  *
  * @param s A string of the form `Table( * , * , * , ...)`, with no commas
  * in column labels.
@@ -901,7 +1040,7 @@ private:
 inline Table makeTableFromString(const std::string& s)
 {
   // check string is of the form Table()
-  std::string prefix = "Table(";
+  std::string prefix = "TABLE(";
   assertTrue<LogicError>(s.rfind(prefix, 0) == 0,
                          "string does not start with Table key word");
   assertTrue<LogicError>(s[s.length() - 1] == ')',
