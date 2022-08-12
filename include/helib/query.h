@@ -241,6 +241,7 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
       if ((operatorStack.top() == '&') ||
           ((operatorStack.top() == '|') && symbol == "OR")) {
         // cases where precedence needs to be handled
+        assertTrue(operandStack.size() > 1, "not enough operands in stack: query badly formed");
         QueryExpr rhs = operandStack.top();
         operandStack.pop();
         QueryExpr lhs = operandStack.top();
@@ -254,6 +255,7 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
     } else if (symbol == ")") {
       // flush the operator stack
       while (operatorStack.top() != '(') {
+        assertTrue(operandStack.size() > 1, "not enough operands in stack: query badly formed");
         QueryExpr rhs = operandStack.top();
         operandStack.pop();
         QueryExpr lhs = operandStack.top();

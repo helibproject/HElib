@@ -120,6 +120,10 @@ TEST(TestQuery, ExpectedThrowsBuildQueryExpr)
   EXPECT_THROW(helib::buildQuery("(0 AND 1) 2"), helib::LogicError);
   // Throws because query badly formed (final operand stack is non empty)
   EXPECT_THROW(helib::buildQuery("0  1 AND 2"), helib::LogicError);
+  // Throws because query badly formed (trailing ANDs or ORs)
+  EXPECT_THROW(helib::buildQuery("0 AND 1 AND"),helib::LogicError);
+  EXPECT_THROW(helib::buildQuery("AND 0 AND 1"),helib::LogicError);
+  EXPECT_THROW(helib::buildQuery("1 OR"),helib::LogicError);
 }
 
 TEST(TestQuery, TestBuildQueryExprFromTable)
