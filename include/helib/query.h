@@ -840,6 +840,9 @@ public:
     }
     return QueryBuilder(scopy);
   }
+  std::vector<std::string> getColNames(){ return col_names; }
+  std::vector<long> getColDims(){ return col_dims; }
+  long getColCount(){ return col_count; }
 
 
 private:
