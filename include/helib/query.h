@@ -502,22 +502,15 @@ private:
     while (input >> symbol) {
       if (symbol == "(") {
         st.push('(');
-      } else if (symbol == "AND" && st.top() == '&') {
-        // in a multiAND clause
-        ret += " &&";
-      } else if (symbol == "AND") {
-        // not in a multiAND clause
-        st.push('&');
-      } else if (symbol == "OR" && st.top() == '&') {
-        //&& has higher precedence than ||
-        ret += " &&";
-        st.pop();
-        st.push('|');
-      } else if (symbol == "OR" && st.top() == '|') {
-        // in a multiOR clause
-        ret += " ||";
-      } else if (symbol == "OR") {
-        st.push('|');
+      else if(st.top() == '&' || (symbol == "OR" && st.top() == '|')){
+        // cases where precedence has to be handled
+        ret += (st.top() == '&')? " &&" : " ||";
+        st.pop(); // pop old operator
+        st.push((symbol == "AND")? '&' : '|'); // push new one
+      }
+      else if(symbol == "AND" || symbol == "OR"){
+        st.push((symbol == "AND")? '&' : '|');// add operator to stack
+      }
       } else if (symbol == ")") { // empty stack until hit a "("
         while (st.top() != '(') {
           // add either " &&" or " ||"
