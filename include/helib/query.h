@@ -24,6 +24,8 @@
 #include <stack>
 #include <regex>
 #include <algorithm> // std::count
+#include <unordered_map>
+#include <unordered_set>
 
 /**
  * @file query.h
@@ -198,23 +200,23 @@ inline bool isNumber(const std::string& s)
 }
 
 /**
- * @brief Utility function that splits a string based on specified delimiter(s).
- * @param ss The `std::stringstream` that will hold the space separated
- * resultant string.
- * @param s The input string to split.
- * @param delims A string of characters which are considered to be delimiters.
+ * @brief Utility function that adds spaces around the chars '(', ')', ',' given
+ * a string.
+ * @param ss The output `std::stringstream` which will contain the space
+ * separated items.
+ * @param s The input string that contains characters to add spaces around.
+ * @note This will add a trailing space if the string ends with one of the
+ * specified characters.
  */
-// TODO Not sure how useful this function actually is
-inline void splitString(const std::stringstream& ss,
-                        const std::string& s,
-                        const std::string& delims)
+void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
 {
-  long pos;
-  long prev = 0;
-  while ((pos = s.find_first_of(delims, prev)) != std::string::npos) {
-    if (pos != prev)
-      ss << s.substr(prev, pos - prev) << " ";
-    prev = pos + 1;
+  std::unordered_set<char> set = {')', '(', ','};
+  for (const auto& c : s) {
+    if (set.count(c) == 1) {
+      ss << " " << c << " ";
+      continue;
+    }
+    ss << c;
   }
 }
 
@@ -244,16 +246,7 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
 
   // add spaces in the input stream before and after brackets
   std::stringstream input{" "};
-  // TODO
-  for (const auto& c : inFixQuery) {
-    if (c == '(')
-      input << " ( ";
-    else if (c == ')')
-      input << " ) ";
-    else
-      input << c;
-  }
-  input << " )";
+  addSpacesAroundChars(input, inFixQuery);
   operatorStack.push('(');
   std::string symbol;
   while (input >> symbol) {
@@ -441,34 +434,6 @@ public:
 private:
   std::string query_str;
 
-  // Utility function for adding spaces to an input stream before and after
-  // brackets given a query string.
-  void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
-  {
-    std::unordered_set<char> set = {')', '(', ','};
-    for (const auto& c : s) {
-      if (set.count(c) == 1) {
-        ss << " " << c << " ";
-        continue;
-      }
-      ss << c;
-    }
-
-    std::replace(s.begin(), s.end(), ')', " ) ");
-    std::replace(s.begin(), s.end(), '(', " ( ");
-    std::replace(s.begin(), s.end(), ',', " , ");
-
-    for (const auto& c : s) {
-      if (c == '(')
-        ss << " ( ";
-      else if (c == ')')
-        ss << " ) ";
-      else
-        ss << c;
-    }
-    ss << " )";
-  }
-
   /**
    * @brief Function that converts a space separated infix query with ANDs and
    * ORs to reverse polish notation.
@@ -495,7 +460,7 @@ private:
 
     // Add spaces in the input stream before and after brackets
     std::stringstream input{" "};
-    addSpacesAroundBrackets(input, s);
+    addSpacesAroundChars(input, s);
     st.push('(');
 
     std::string symbol;
@@ -708,171 +673,77 @@ private:
 class Table
 {
 public:
-  // TODO Write constructor Table(const std::string& tableString)
-
   /**
    * @brief Construct a new `Table` object from a table string.
    * @param table The input string listing the names and dimensions of the
    * columns of the table.
    */
-  Table(const std::string& table) { buildTableFromStr(table); }
-  /**
-   * @brief Construct a new `Table` object from column labels only.
-   * Constructs a table which has all columns of ctxt width = 1.
-   * @param cols Tuple of column labels.
-   */
-  Table(const std::vector<std::string>& cols) :
-      col_names(cols),
-      col_dims(std::vector(cols.size(), 1L)),
-      col_count(cols.size())
+  Table(const std::string& table)
   {
+    buildTableFromStr(table);
   }
 
-  /**
-   * @brief Construct a new `Table` object from column labels and dimensions.
-   * @param cols tuple of column labels.
-   * @param dims tuple of column ciphertext dimensions.
-   */
-  // Should this assert all dims > 0? TODO: Probably
-  Table(const std::vector<std::string>& cols, const std::vector<long>& dims) :
-      col_names(cols), col_dims(dims)
-  {
-    assertEq<LogicError>(
-        cols.size(),
-        dims.size(),
-        "Error, number of columns and number of dimensions mismatch");
-    col_count = std::accumulate(dims.begin(), dims.end(), 0);
-  }
+  // TODO: Constructor that accepts raw data? i.e.
+  // Table(const std::unordered_map& data) : columns(data) {}
 
-  /**
-   * @brief Append a new column to the end of the `Table`.
-   * @param col The column label.
-   * @param dim The ciphertext dimension of the new column. Default = 1.
-   */
-  void append(const std::string& col, long dim = 1L)
-  {
-    col_names.push_back(col);
-    col_dims.push_back(dim);
-    col_count += dim;
-  }
-
-  /**
-   * @brief Insert a new column at index.
-   * @param index The `Table` index to insert the new column, using zero
-   * ordering.
-   * @param col The column label.
-   * @param dim The ciphertext dimension of the new column. Default = 1.
-   */
-  void insert(long index, const std::string& col, long dim = 1L)
-  {
-    // sanitize/check index?
-    col_names.insert(col_names.begin() + index, col);
-    col_dims.insert(col_dims.begin() + index, dim);
-    col_count += dim;
-  }
-
-  /**
-   * @brief Resize the width of a column.
-   * @param index The column to resize.
-   * @param newdim The new column width.
-   */
-  void resize(long index, long newdim)
-  {
-    assertTrue<LogicError>(newdim > 0,
-                           "error, column width must be a positive integer");
-    col_count += (newdim - col_dims[index]);
-    col_dims[index] = newdim;
-  }
-
-  /**
-   * @brief Erase a column at specified index.
-   * @param index The `Table` index to erase.
-   */
-  void erase(long index)
-  {
-    // sanitize/check index?
-    col_count -= col_dims[index];
-    col_names.erase(col_names.begin() + index);
-    col_dims.erase(col_dims.begin() + index);
-  }
-
-  /**
-   * @brief Build a `QueryExpr` object from a table query.
-   * @param s A query with space separated ANDs and ORs and column labels as
-   * operands.
-   * @return A `QueryExpr` object with database column numbers as operands.
-   */
-  QueryExpr buildQueryExpr(const std::string& s) const
-  {
-    std::unordered_map<std::string, QueryExpr> operands = buildOperands();
-    std::stack<char> operatorStack;     // stack for operators
-    std::stack<QueryExpr> operandStack; // stack for operands
-    // add spaces in the input stream before and after brackets
-    std::stringstream input{" "};
-    // TODO: Code duplication
-    for (const auto& c : s) {
-      if (c == '(')
-        input << " ( ";
-      else if (c == ')')
-        input << " ) ";
-      else
-        input << c;
-    }
-    input << " )";
-    operatorStack.push('(');
-    std::string symbol;
-    std::string col = "";
-    while (input >> symbol) {
-      if (symbol == "(")
-        operatorStack.push('(');
-      else if (symbol == "AND" || symbol == "OR" || symbol == ")") {
-        // make an operator for the operator stack
-        if (col.length() != 0) {
-          assertTrue(operands.find(col) != operands.end(),
-                     "unrecognized column: '" + col + "'");
-          operandStack.push(operands.at(col));
-          col.clear();
-        }
-
-        if (symbol == "AND" || symbol == "OR") {
-          if ((operatorStack.top() == '&') ||
-              ((operatorStack.top() == '|') && symbol == "OR")) {
-            // cases where precedence needs to be handled
-            QueryExpr rhs = operandStack.top();
-            operandStack.pop();
-            QueryExpr lhs = operandStack.top();
-            operandStack.pop();
-            operandStack.push((operatorStack.top() == '&') ? (lhs && rhs)
-                                                           : (lhs || rhs));
-            operatorStack.pop();
-          }
-          // push new operator to the stack
-          operatorStack.push((symbol == "AND") ? '&' : '|');
-        } else {
-          // must be a ')': flush the operator stack
-          while (operatorStack.top() != '(') {
-            QueryExpr rhs = operandStack.top();
-            operandStack.pop();
-            QueryExpr lhs = operandStack.top();
-            operandStack.pop();
-            operandStack.push((operatorStack.top() == '&') ? (lhs && rhs)
-                                                           : (lhs || rhs));
-            operatorStack.pop();
-          }
-          operatorStack.pop(); // pop the "("
-        }
-      } else {
-        col += (col.length() == 0) ? symbol : " " + symbol;
-      }
-    }
-    assertEq<LogicError>(0UL,
-                         operatorStack.size(),
-                         "operatorStack should be empty");
-    assertEq<LogicError>(1UL,
-                         operandStack.size(),
-                         "operandStack should have one element");
-    return operandStack.top();
-  }
+  /************************* 
+   * This section contains future possible public APIs for the Table class.
+   * This is considered experimental.
+   **************************/
+//  /**
+//   * @brief Append a new column to the end of the `Table`.
+//   * @param col The column label.
+//   * @param dim The ciphertext dimension of the new column. Default = 1.
+//   */
+//  void append(const std::string& col, long dim = 1L)
+//  {
+//    col_names.push_back(col);
+//    col_dims.push_back(dim);
+//    col_count += dim;
+//  }
+//
+//  /**
+//   * @brief Insert a new column at index.
+//   * @param index The `Table` index to insert the new column, using zero
+//   * ordering.
+//   * @param col The column label.
+//   * @param dim The ciphertext dimension of the new column. Default = 1.
+//   */
+//  void insert(long index, const std::string& col, long dim = 1L)
+//  {
+//    // sanitize/check index?
+//    col_names.insert(col_names.begin() + index, col);
+//    col_dims.insert(col_dims.begin() + index, dim);
+//    col_count += dim;
+//  }
+//
+//  /**
+//   * @brief Resize the width of a column.
+//   * @param index The column to resize.
+//   * @param newdim The new column width.
+//   */
+//  void resize(long index, long newdim)
+//  {
+//    assertTrue<LogicError>(newdim > 0,
+//                           "error, column width must be a positive integer");
+//    col_count += (newdim - col_dims[index]);
+//    col_dims[index] = newdim;
+//  }
+//
+//  /**
+//   * @brief Erase a column at specified index.
+//   * @param index The `Table` index to erase.
+//   */
+//  void erase(long index)
+//  {
+//    // sanitize/check index?
+//    col_count -= col_dims[index];
+//    col_names.erase(col_names.begin() + index);
+//    col_dims.erase(col_dims.begin() + index);
+//  }
+  /*************************************
+   * End of experimental section.
+   ************************************/
 
   /**
    * @brief Given a Table query string, convert this into a query expression
@@ -910,17 +781,16 @@ public:
                          std::count(s.begin(), s.end(), ')'),
                          "invalid query, unbalanced brackets");
     std::stringstream ss(" ");
-    addSpacesAroundBrackets(ss, s);
+    addSpacesAroundChars(ss, s);
     std::ostringstream out;
     std::string symbol;
-    // TODO: This will add a trailing space
     while (ss >> symbol) {
       // Replace column names with their index
       if (columns.count(symbol) == 1) {
-        out << columns.at(symbol).first() << " ";
+        out << columns.at(symbol).first << " ";
         // Append any additional columns if part of a composite column
-        for (long i = 1; i < columns.at(symbol).second(); ++i) {
-          out << "AND " << columns.at(symbol).first() + i << " ";
+        for (long i = 1; i < columns.at(symbol).second; ++i) {
+          out << "AND " << columns.at(symbol).first + i << " ";
         }
       } else {
         out << symbol << " ";
@@ -928,55 +798,65 @@ public:
     }
     return out.str();
   }
-  std::vector<std::string> getColNames() { return col_names; }
-  std::vector<long> getColDims() { return col_dims; }
-  long getColCount() { return col_count; }
+
+  /**
+   * @brief Return the number of column entries registered in the `Table`.
+   * @return The number of column entries.
+   */
+  long getColCount() const { return columns.size(); }
+
+  /**
+   * @brief Print out the contents of the `Table` to a stream of the format
+   * Key:[column name] Value:[index, dim].
+   */
+  void printTable(std::ostream& os = std::cout) const
+  {
+    for (const auto& [key, value] : columns) {
+      os << "Key:[" << key << "] Value:[" << value.first << ", " << value.second << "]\n";
+    }
+  }
 
 private:
-  static const std::unordered_set operators = {"AND", "OR", "NOT"};
-  // TODO std::unordered_map<std::string, std::pair<int, int>>
+  // Reserved key-words. Check potential column names against these words
+  static const inline std::unordered_set<std::string> operators = {"AND", "OR", "NOT"};
   // key = column name, value = (index, dim)
   std::unordered_map<std::string, std::pair<long, long>> columns;
-  // std::vector<std::string> col_names;
-  // std::vector<long> col_dims;
-  // long col_count;
 
   // Utility function that build the Table object from a string description
   void buildTableFromStr(const std::string& tableStr)
   {
     // check string is of the form Table()
-    // TODO Table -> TABLE
-    std::string prefix = "Table(";
-    assertTrue<LogicError>(s.rfind(prefix, 0) == 0,
+    // TODO Add option for "TABLE ("
+    std::string prefix = "TABLE(";
+    assertTrue<LogicError>(tableStr.rfind(prefix, 0) == 0,
                            "string does not start with Table key word");
-    assertTrue<LogicError>(s[s.length() - 1] == ')',
+    assertTrue<LogicError>(tableStr[tableStr.length() - 1] == ')',
                            "string does not end with )");
     // construct a stringstream to parse input. Need spaces before and after
     // commas and skip final bracket
     std::stringstream input{" "};
-    for (long i = prefix.length(); i < long(s.length()) - 1; ++i) {
+    for (long i = prefix.length(); i < long(tableStr.length()) - 1; ++i) {
       // TODO
       // count = s.length() - prefix.length() - 1
       // string.substr(start, count);
-      if (s[i] == ',') {
+      if (tableStr[i] == ',') {
         input << " , ";
-      } else if (s[i] == '(') {
+      } else if (tableStr[i] == '(') {
         input << " ( ";
-      } else if (s[i] == ')') {
+      } else if (tableStr[i] == ')') {
         input << " ) ";
       } else {
-        input << s[i];
+        input << tableStr[i];
       }
     }
-    std::vector<std::string> columns;
     std::string symbol;
     std::string col = "";
     long index;
     // TODO Deal with the dimensions i.e. TABLE(colname 2, ...)
     // If no number is present assume it is 1?
+    // TODO Add checks for valid/invalid words etc. like checks in code below
     while (input >> symbol) {
       if (symbol == ",") { // TODO What happens if there's a leading comma?
-        // columns.push_back(col);
         columns.insert({col, std::make_pair(index, 1L)});
         ++index;
         col.clear();
@@ -1014,41 +894,6 @@ private:
     // index += dim + 1;
     // }
   }
-
-  std::unordered_map<std::string, QueryExpr> buildOperands() const
-  {
-    long current_index = 0;
-    std::unordered_map<std::string, QueryExpr> operands;
-    for (long i = 0; i < long(col_names.size()); i++) {
-      // assert dim > 0?
-      QueryExpr op = makeQueryExpr(current_index);
-      current_index++;
-      for (int j = 1; j < col_dims[i]; j++) {
-        QueryExpr newop = op && makeQueryExpr(current_index);
-        op = newop;
-        current_index++;
-      }
-      operands.insert(std::make_pair(col_names[i], op));
-    }
-    return operands;
-  }
-
-  std::unordered_map<std::string, std::string> buildOperandStrings() const
-  {
-    long current_index = 0;
-    std::unordered_map<std::string, std::string> operands;
-    for (long i = 0; i < long(col_names.size()); i++) {
-      // assert dim > 0?
-      std::string op = std::to_string(current_index);
-      current_index++;
-      for (int j = 1; j < col_dims[i]; j++) {
-        op += " AND " + std::to_string(current_index);
-        current_index++;
-      }
-      operands[col_names[i]] = op;
-    }
-    return operands;
-  }
 };
 
 /**
@@ -1067,38 +912,7 @@ private:
  */
 inline Table makeTableFromString(const std::string& s)
 {
-  // check string is of the form Table()
-  std::string prefix = "TABLE(";
-  assertTrue<LogicError>(s.rfind(prefix, 0) == 0,
-                         "string does not start with Table key word");
-  assertTrue<LogicError>(s[s.length() - 1] == ')',
-                         "string does not end with )");
-  // construct a stringstream to parse input. Need spaces before and after
-  // commas and skip final bracket
-  std::stringstream input{" "};
-  for (long i = prefix.length(); i < long(s.length()) - 1; ++i) {
-    // TODO
-    // count = s.length() - prefix.length() - 1
-    // string.substr(start, count);
-    if (s[i] == ',')
-      input << " , ";
-    else {
-      input << s[i];
-    }
-  }
-  std::vector<std::string> columns;
-  std::string symbol;
-  std::string col = "";
-  while (input >> symbol) {
-    if (symbol == ",") {
-      columns.push_back(col);
-      col.clear();
-    } else {
-      col += (col.length() == 0) ? symbol : " " + symbol;
-    }
-  }
-  columns.push_back(col);
-  return Table(columns);
+  return Table(s);
 }
 
 } // namespace helib
