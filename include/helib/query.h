@@ -23,6 +23,7 @@
 
 #include <stack>
 #include <regex>
+#include <algorithm> // std::count
 
 /**
  * @file query.h
@@ -262,7 +263,8 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
       if ((operatorStack.top() == '&') ||
           ((operatorStack.top() == '|') && symbol == "OR")) {
         // cases where precedence needs to be handled
-        assertTrue(operandStack.size() > 1, "not enough operands in stack: query badly formed");
+        assertTrue(operandStack.size() > 1,
+                   "not enough operands in stack: query badly formed");
         QueryExpr rhs = operandStack.top();
         operandStack.pop();
         QueryExpr lhs = operandStack.top();
@@ -276,7 +278,8 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
     } else if (symbol == ")") {
       // flush the operator stack
       while (operatorStack.top() != '(') {
-        assertTrue(operandStack.size() > 1, "not enough operands in stack: query badly formed");
+        assertTrue(operandStack.size() > 1,
+                   "not enough operands in stack: query badly formed");
         QueryExpr rhs = operandStack.top();
         operandStack.pop();
         QueryExpr lhs = operandStack.top();
@@ -344,7 +347,8 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 
   /**
    * @brief Constructor.
@@ -359,7 +363,8 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 };
 
 /**
@@ -710,10 +715,7 @@ public:
    * @param table The input string listing the names and dimensions of the
    * columns of the table.
    */
-  Table(const std::string& table)
-  {
-    buildTableFromStr(table);
-  }
+  Table(const std::string& table) { buildTableFromStr(table); }
   /**
    * @brief Construct a new `Table` object from column labels only.
    * Constructs a table which has all columns of ctxt width = 1.
@@ -723,7 +725,8 @@ public:
       col_names(cols),
       col_dims(std::vector(cols.size(), 1L)),
       col_count(cols.size())
-  {}
+  {
+  }
 
   /**
    * @brief Construct a new `Table` object from column labels and dimensions.
@@ -881,7 +884,31 @@ public:
    */
   std::string buildQueryString(const std::string& s) const
   {
-    // TODO: Add missing checks like no multi-word etc.
+    // TODO ask about whether it's okay to be hardcoding AND / OR
+    // TODO ask whether LogicError is the right error to throw here (vs e.g. InvalidArgument)
+    // checks on validity of query string:
+    // spaces around operators
+    std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
+    assertFalse(regex_search(s.begin(), s.end(), opSpaces),
+                "invalid query, require spaces around ANDs and ORs");
+    // operand followed by operand -> this covers multi word columns
+    std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+    assertFalse(regex_search(s.begin(), s.end(), consecArgs),
+                "invalid query, found consecutive arguments");
+    // No consecutive operators, no operators directly before right bracket,
+    // no operators directly after left bracket
+    std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
+    assertFalse(regex_search(s.begin(), s.end(), consecOps),
+                "invalid query, found consecutive operators");
+    // Query does not begin or end with AND or OR
+    std::regex startOrEndOp("^(AND|OR)|(AND|OR)$");
+    assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
+                "invalid query, query starts or ends with an operator");
+    // only valid columns? Not sure where else this would be done.
+    // number of left brackets = number of right brackets
+    assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
+                         std::count(s.begin(), s.end(), ')'),
+                         "invalid query, unbalanced brackets");
     std::stringstream ss(" ");
     addSpacesAroundBrackets(ss, s);
     std::ostringstream out;
@@ -901,9 +928,9 @@ public:
     }
     return out.str();
   }
-  std::vector<std::string> getColNames(){ return col_names; }
-  std::vector<long> getColDims(){ return col_dims; }
-  long getColCount(){ return col_count; }
+  std::vector<std::string> getColNames() { return col_names; }
+  std::vector<long> getColDims() { return col_dims; }
+  long getColCount() { return col_count; }
 
 private:
   static const std::unordered_set operators = {"AND", "OR", "NOT"};
@@ -966,24 +993,25 @@ private:
     // std::string name;
     // ss >> name;
     // assertEq<InvalidArgumentError>("TABLE",
-                                   // name,
-                                   // "Invalid string format, must start with the \'TABLE\' keyword");
+    // name,
+    // "Invalid string format, must start with the \'TABLE\' keyword");
     // std::ostringstream oss;
     // long index = 0;
     // long dim;
     // TODO Just to start let's assume dimension is always given
     // while (ss >> name) {
-      // // Check the value is not one of the reserved keywords
-      // assertNeq<InvalidArgument>(operators.count(symbol), 1, "Invalid column name: the following words are reserved {AND, OR, NOT}.");
-      // if (!isNumber(name)) { // Must be a column name
-        // assertEq<InvalidArgument>(columns.count(name), 0, "Duplicate column name detected."); 
-        // ss >> dim;
-        // columns.insert({name, std::make_pair(index, dim)});
-      // } else { // Must be a dimension
-        // // TODO Deal with optional dim
-      // }
-      // // TODO Should the index be the "actual" index of the column?
-      // index += dim + 1;
+    // // Check the value is not one of the reserved keywords
+    // assertNeq<InvalidArgument>(operators.count(symbol), 1, "Invalid column
+    // name: the following words are reserved {AND, OR, NOT}."); if
+    // (!isNumber(name)) { // Must be a column name
+    // assertEq<InvalidArgument>(columns.count(name), 0, "Duplicate column name
+    // detected."); ss >> dim; columns.insert({name, std::make_pair(index,
+    // dim)});
+    // } else { // Must be a dimension
+    // // TODO Deal with optional dim
+    // }
+    // // TODO Should the index be the "actual" index of the column?
+    // index += dim + 1;
     // }
   }
 
