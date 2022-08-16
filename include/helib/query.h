@@ -467,16 +467,14 @@ private:
     while (input >> symbol) {
       if (symbol == "(") {
         st.push('(');
-      else if(st.top() == '&' || (symbol == "OR" && st.top() == '|')){
+      } else if (st.top() == '&' || (symbol == "OR" && st.top() == '|')) {
         // cases where precedence has to be handled
-        ret += (st.top() == '&')? " &&" : " ||";
-        st.pop(); // pop old operator
-        st.push((symbol == "AND")? '&' : '|'); // push new one
-      }
-      else if(symbol == "AND" || symbol == "OR"){
-        st.push((symbol == "AND")? '&' : '|');// add operator to stack
-      }
-      } else if (symbol == ")") { // empty stack until hit a "("
+        ret += (st.top() == '&') ? " &&" : " ||";
+        st.pop();                               // pop old operator
+        st.push((symbol == "AND") ? '&' : '|'); // push new one
+      } else if (symbol == "AND" || symbol == "OR") {
+        st.push((symbol == "AND") ? '&' : '|'); // add operator to stack
+      } else if (symbol == ")") {               // empty stack until hit a "("
         while (st.top() != '(') {
           // add either " &&" or " ||"
           // Note: For some reason this doesn't work with +=
@@ -671,69 +669,67 @@ public:
    * @param table The input string listing the names and dimensions of the
    * columns of the table.
    */
-  Table(const std::string& table)
-  {
-    buildTableFromStr(table);
-  }
+  Table(const std::string& table) { buildTableFromStr(table); }
 
   // TODO: Constructor that accepts raw data? i.e.
   // Table(const std::unordered_map& data) : columns(data) {}
 
-  /************************* 
+  /*************************
    * This section contains future possible public APIs for the Table class.
    * This is considered experimental.
    **************************/
-//  /**
-//   * @brief Append a new column to the end of the `Table`.
-//   * @param col The column label.
-//   * @param dim The ciphertext dimension of the new column. Default = 1.
-//   */
-//  void append(const std::string& col, long dim = 1L)
-//  {
-//    col_names.push_back(col);
-//    col_dims.push_back(dim);
-//    col_count += dim;
-//  }
-//
-//  /**
-//   * @brief Insert a new column at index.
-//   * @param index The `Table` index to insert the new column, using zero
-//   * ordering.
-//   * @param col The column label.
-//   * @param dim The ciphertext dimension of the new column. Default = 1.
-//   */
-//  void insert(long index, const std::string& col, long dim = 1L)
-//  {
-//    // sanitize/check index?
-//    col_names.insert(col_names.begin() + index, col);
-//    col_dims.insert(col_dims.begin() + index, dim);
-//    col_count += dim;
-//  }
-//
-//  /**
-//   * @brief Resize the width of a column.
-//   * @param index The column to resize.
-//   * @param newdim The new column width.
-//   */
-//  void resize(long index, long newdim)
-//  {
-//    assertTrue<LogicError>(newdim > 0,
-//                           "error, column width must be a positive integer");
-//    col_count += (newdim - col_dims[index]);
-//    col_dims[index] = newdim;
-//  }
-//
-//  /**
-//   * @brief Erase a column at specified index.
-//   * @param index The `Table` index to erase.
-//   */
-//  void erase(long index)
-//  {
-//    // sanitize/check index?
-//    col_count -= col_dims[index];
-//    col_names.erase(col_names.begin() + index);
-//    col_dims.erase(col_dims.begin() + index);
-//  }
+  //  /**
+  //   * @brief Append a new column to the end of the `Table`.
+  //   * @param col The column label.
+  //   * @param dim The ciphertext dimension of the new column. Default = 1.
+  //   */
+  //  void append(const std::string& col, long dim = 1L)
+  //  {
+  //    col_names.push_back(col);
+  //    col_dims.push_back(dim);
+  //    col_count += dim;
+  //  }
+  //
+  //  /**
+  //   * @brief Insert a new column at index.
+  //   * @param index The `Table` index to insert the new column, using zero
+  //   * ordering.
+  //   * @param col The column label.
+  //   * @param dim The ciphertext dimension of the new column. Default = 1.
+  //   */
+  //  void insert(long index, const std::string& col, long dim = 1L)
+  //  {
+  //    // sanitize/check index?
+  //    col_names.insert(col_names.begin() + index, col);
+  //    col_dims.insert(col_dims.begin() + index, dim);
+  //    col_count += dim;
+  //  }
+  //
+  //  /**
+  //   * @brief Resize the width of a column.
+  //   * @param index The column to resize.
+  //   * @param newdim The new column width.
+  //   */
+  //  void resize(long index, long newdim)
+  //  {
+  //    assertTrue<LogicError>(newdim > 0,
+  //                           "error, column width must be a positive
+  //                           integer");
+  //    col_count += (newdim - col_dims[index]);
+  //    col_dims[index] = newdim;
+  //  }
+  //
+  //  /**
+  //   * @brief Erase a column at specified index.
+  //   * @param index The `Table` index to erase.
+  //   */
+  //  void erase(long index)
+  //  {
+  //    // sanitize/check index?
+  //    col_count -= col_dims[index];
+  //    col_names.erase(col_names.begin() + index);
+  //    col_dims.erase(col_dims.begin() + index);
+  //  }
   /*************************************
    * End of experimental section.
    ************************************/
@@ -749,9 +745,9 @@ public:
   std::string buildQueryString(const std::string& s) const
   {
     // TODO ask about whether it's okay to be hardcoding AND / OR
-    // TODO ask whether LogicError is the right error to throw here (vs e.g. InvalidArgument)
-    // checks on validity of query string:
-    // spaces around operators
+    // TODO ask whether LogicError is the right error to throw here (vs e.g.
+    // InvalidArgument) checks on validity of query string: spaces around
+    // operators
     std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
     assertFalse(regex_search(s.begin(), s.end(), opSpaces),
                 "invalid query, require spaces around ANDs and ORs");
@@ -806,13 +802,16 @@ public:
   void printTable(std::ostream& os = std::cout) const
   {
     for (const auto& [key, value] : columns) {
-      os << "Key:[" << key << "] Value:[" << value.first << ", " << value.second << "]\n";
+      os << "Key:[" << key << "] Value:[" << value.first << ", " << value.second
+         << "]\n";
     }
   }
 
 private:
   // Reserved key-words. Check potential column names against these words
-  static const inline std::unordered_set<std::string> operators = {"AND", "OR", "NOT"};
+  static const inline std::unordered_set<std::string> operators = {"AND",
+                                                                   "OR",
+                                                                   "NOT"};
   // key = column name, value = (index, dim)
   std::unordered_map<std::string, std::pair<long, long>> columns;
 
@@ -904,10 +903,7 @@ private:
  * @return A `Table` object with labels as column labels and every ctxt
  * dimension equal to 1.
  */
-inline Table makeTableFromString(const std::string& s)
-{
-  return Table(s);
-}
+inline Table makeTableFromString(const std::string& s) { return Table(s); }
 
 } // namespace helib
 
