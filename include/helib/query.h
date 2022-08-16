@@ -461,18 +461,19 @@ private:
     // Add spaces in the input stream before and after brackets
     std::stringstream input{" "};
     addSpacesAroundChars(input, s);
+    input << " )";
     st.push('(');
 
     std::string symbol;
     while (input >> symbol) {
       if (symbol == "(") {
         st.push('(');
-      } else if (st.top() == '&' || (symbol == "OR" && st.top() == '|')) {
-        // cases where precedence has to be handled
-        ret += (st.top() == '&') ? " &&" : " ||";
-        st.pop();                               // pop old operator
-        st.push((symbol == "AND") ? '&' : '|'); // push new one
       } else if (symbol == "AND" || symbol == "OR") {
+        if (st.top() == '&' || (symbol == "OR" && st.top() == '|')) {
+          // cases where precedence has to be handled
+          ret += (st.top() == '&') ? " &&" : " ||";
+          st.pop(); // pop old operator
+        }
         st.push((symbol == "AND") ? '&' : '|'); // add operator to stack
       } else if (symbol == ")") {               // empty stack until hit a "("
         while (st.top() != '(') {
