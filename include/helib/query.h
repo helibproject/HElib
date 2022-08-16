@@ -247,6 +247,7 @@ inline QueryExpr buildQuery(const std::string& inFixQuery)
   // add spaces in the input stream before and after brackets
   std::stringstream input{" "};
   addSpacesAroundChars(input, inFixQuery);
+  input << " )";
   operatorStack.push('(');
   std::string symbol;
   while (input >> symbol) {
