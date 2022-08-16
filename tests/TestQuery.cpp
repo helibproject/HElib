@@ -9,7 +9,7 @@
 
 namespace {
 
-TEST(TestQuery, TestInfixToPolishConversion)
+TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversion)
 {
   std::vector<helib::QueryBuilder> input_exprs;
   input_exprs.push_back(helib::QueryBuilder("a AND b"));
@@ -51,7 +51,35 @@ TEST(TestQuery, TestInfixToPolishConversion)
   }
 }
 
-TEST(TestQuery, TestBuildQueryExprFromInfixString)
+TEST(TestQuery, ExpectedThrowsInfixToPostFixNotation)
+{
+  // throws because left bracket next to AND
+  EXPECT_THROW(helib::QueryBuilder("(AND a OR b"), helib::LogicError);
+  // throws because OR next to AND
+  EXPECT_THROW(helib::QueryBuilder("c OR AND b"), helib::LogicError);
+  // throws because left bracket next to right bracket
+  EXPECT_THROW(helib::QueryBuilder("() c AND b"), helib::LogicError);
+  // throws because no spaces around AND
+  EXPECT_THROW(helib::QueryBuilder("aAND c OR b"), helib::LogicError);
+  // throws because no spaces around OR
+  EXPECT_THROW(helib::QueryBuilder("c ORb"), helib::LogicError);
+
+  // TODO: uncomment these when extra query checks added
+  /**
+  // throws because consecutive operands
+  EXPECT_THROW(helib::QueryBuilder("a b c"),helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("date of birth AND c"),helib::LogicError);
+  // throws because unequal number of left and right brackets
+  EXPECT_THROW(helib::QueryBuilder("(a AND b))"),helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("((b)"),helib::LogicError);
+  // throws because expression starts with AND
+  EXPECT_THROW(helib::QueryBuilder("AND a AND b"),helib::LogicError);
+  // throws because expression starts with OR
+  EXPECT_THROW(helib::QueryBuilder("y OR "),helib::LogicError);
+  **/
+}
+
+TEST(TestQuery, BuildQueryExprFromInfixString)
 {
   std::vector<helib::QueryExpr> input_exprs;
   input_exprs.push_back(helib::buildQuery("0 AND 1"));
@@ -75,7 +103,7 @@ TEST(TestQuery, TestBuildQueryExprFromInfixString)
   }
 }
 
-TEST(TestQuery, TestBuildQueryExprFromInfixStringSpacesAndPrecedence)
+TEST(TestQuery, BuildQueryExprFromInfixStringSpacesAndPrecedence)
 {
   std::vector<helib::QueryExpr> input_exprs;
   input_exprs.push_back(helib::buildQuery("0 AND 1 AND 2"));
@@ -93,7 +121,7 @@ TEST(TestQuery, TestBuildQueryExprFromInfixStringSpacesAndPrecedence)
   }
 }
 
-TEST(TestQuery, TestBuildQueryExprFromInfixStringBrackets)
+TEST(TestQuery, BuildQueryExprFromInfixStringBrackets)
 {
   std::vector<helib::QueryExpr> input_exprs;
   input_exprs.push_back(helib::buildQuery("(0 AND 1) OR (2 AND 3)"));
@@ -121,155 +149,116 @@ TEST(TestQuery, ExpectedThrowsBuildQueryExpr)
   // Throws because query badly formed (final operand stack is non empty)
   EXPECT_THROW(helib::buildQuery("0  1 AND 2"), helib::LogicError);
   // Throws because query badly formed (trailing ANDs or ORs)
-  EXPECT_THROW(helib::buildQuery("0 AND 1 AND"),helib::LogicError);
-  EXPECT_THROW(helib::buildQuery("AND 0 AND 1"),helib::LogicError);
-  EXPECT_THROW(helib::buildQuery("1 OR"),helib::LogicError);
+  EXPECT_THROW(helib::buildQuery("0 AND 1 AND"), helib::LogicError);
+  EXPECT_THROW(helib::buildQuery("AND 0 AND 1"), helib::LogicError);
+  EXPECT_THROW(helib::buildQuery("1 OR"), helib::LogicError);
+}
+TEST(TestQuery, TableFromString1DColumns)
+{
+  helib::Table t("TABLE(name,age,weight)");
+  std::ostringstream tablestring;
+  t.printTable(tablestring);
+  std::string expected_tablestring =
+      "Key:[name] Value:[0,1]\nKey:[age] Value:[1,1]\nKey:[weight] Value:[2,1]";
+  EXPECT_EQ(tablestring.str(), expected_tablestring);
+  // TODO: add extra tests?
+  /**
+  helib::Table t1("TABLE (name,age,weight)");
+  std::ostringstream tablestring;
+  t1.printTable(tablestring);
+  std::string expected_tablestring =
+      "Key:[name] Value:[0,1]\nKey:[age] Value:[1,1]\nKey:[weight] Value:[2,1]";
+  EXPECT_EQ(tablestring.str(), expected_tablestring);
+  **/
 }
 
-TEST(TestQuery, TestBuildQueryExprFromTable)
+/**
+TEST(TestQuery, TableFromStringMultiDimensionalColumns) {
+  // TODO
+  helib::Table t0("TABLE(name (2) ,age (3),weight (2))");
+  std::ostringstream tablestring;
+  t.printTable(tablestring);
+  std::string expected_tablestring =
+      "Key:[name] Value:[0,2]\nKey:[age] Value:[2,3]\nKey:[weight] Value:[5,2]";
+  EXPECT_EQ(tablestring.str(), expected_tablestring);
+
+  helib::Table t("TABLE(name,age (4),weight(1))");
+  std::ostringstream tablestring;
+  t.printTable(tablestring);
+  std::string expected_tablestring =
+      "Key:[name] Value:[0,1]\nKey:[age] Value:[1,4]\nKey:[weight] Value:[5,1]";
+  EXPECT_EQ(tablestring.str(), expected_tablestring);
+
+}
+**/
+
+TEST(TestQuery, ExpectedThrowsTableFromString)
 {
-  // width 1 columns
-  helib::Table t({"name", "age", "weight"});
-  t.append("height");
-  std::vector<helib::QueryExpr> input_exprs;
+  // Throws because string does not start with TABLE(
+  EXPECT_THROW(helib::Table("Tab(x,y,z)"), helib::LogicError);
+  // Throws because string does not end with )
+  EXPECT_THROW(helib::Table("TABLE(x,y,z"), helib::LogicError);
+  // TODO: throw for repeated column?
+  // EXPECT_THROW(helib::Table(TABLE(x,y,x)), helib::LogicError);
+  // TODO: throw for multiword column?
+  // TODO: Throw for brackets in column name?
+  // TODO: throw for column name with AND or OR?
+}
+
+TEST(TestQuery, BuildQueryString1DColumns)
+{
+  helib::Table t("TABLE(name,age,weight,height)");
+  std::vector<std::string> input_exprs;
+  input_exprs.push_back(t.buildQueryString("name AND age"));
+  input_exprs.push_back(t.buildQueryString("name OR age"));
+  input_exprs.push_back(t.buildQueryString("( age OR weight )"));
+  input_exprs.push_back(t.buildQueryString("name OR age AND weight"));
+  input_exprs.push_back(t.buildQueryString("( name OR age ) AND weight"));
+  input_exprs.push_back(
+      t.buildQueryString("( name AND age ) OR ( weight AND height )"));
+  input_exprs.push_back(
+      t.buildQueryString("(name AND age AND weight AND height)"));
   std::vector<std::string> expected;
-  input_exprs.push_back(t.buildQueryExpr("name AND age"));
-  input_exprs.push_back(t.buildQueryExpr("name OR age"));
-  input_exprs.push_back(t.buildQueryExpr("( age OR weight )"));
-  input_exprs.push_back(t.buildQueryExpr("name OR age AND weight"));
-  input_exprs.push_back(t.buildQueryExpr("( name OR age ) AND weight"));
-  input_exprs.push_back(
-      t.buildQueryExpr("( name AND age ) OR ( weight AND height )"));
-  input_exprs.push_back(
-      t.buildQueryExpr("(name AND age AND weight AND height)"));
-  expected.push_back("0 1 &&");
-  expected.push_back("0 1 ||");
-  expected.push_back("1 2 ||");
-  expected.push_back("0 1 2 && ||");
-  expected.push_back("0 1 || 2 &&");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 && 3 &&");
+  expected.push_back("0 AND 1 ");
+  expected.push_back("0 OR 1 ");
+  expected.push_back("( 1 OR 2 ) ");
+  expected.push_back("0 OR 1 AND 2 ");
+  expected.push_back("( 0 OR 1 ) AND 2 ");
+  expected.push_back("( 0 AND 1 ) OR ( 2 AND 3 ) ");
+  expected.push_back("( 0 AND 1 AND 2 AND 3 ) ");
   for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
+    EXPECT_EQ(input_exprs[i], expected[i]) << "*** i= " << i;
   }
 }
 
-TEST(TestQuery, TestBuildQueryExprFromTableMultiWidthColumns)
-{
-  helib::Table t({"country", "capital", "population", "currency"},
-                  {2, 1, 1, 2});
-  std::vector<helib::QueryExpr> input_exprs;
-  std::vector<std::string> expected;
-  input_exprs.push_back(t.buildQueryExpr("country AND capital"));
-  input_exprs.push_back(t.buildQueryExpr("country OR capital"));
-  input_exprs.push_back(t.buildQueryExpr("( capital OR population )"));
-  input_exprs.push_back(t.buildQueryExpr("country OR capital AND population"));
-  input_exprs.push_back(
-      t.buildQueryExpr("( country OR capital ) AND population"));
-  input_exprs.push_back(t.buildQueryExpr(
-      "( country AND capital ) OR ( population AND currency )"));
-  input_exprs.push_back(
-      t.buildQueryExpr("(country AND capital AND population AND currency)"));
-  expected.push_back("0 1 && 2 &&");
-  expected.push_back("0 1 && 2 ||");
-  expected.push_back("2 3 ||");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 || 3 &&");
-  expected.push_back("0 1 && 2 && 3 4 5 && && ||");
-  expected.push_back("0 1 && 2 && 3 && 4 5 && &&");
-  for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
-  }
+/**
+TEST(TestQuery, BuildQueryStringMultidimensionalColumns) {}
+**/
+
+/**
+TEST(TestQuery, ExpectedThrowsBuildQueryString) {
+  
 }
+**/
 
-TEST(TestQuery, TestBuildQueryExprFromTableMultiWordColumns)
+TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
 {
-  helib::Table t({"first name", "last name", "date of birth", "address"});
-  std::vector<helib::QueryExpr> input_exprs;
-  std::vector<std::string> expected;
-  input_exprs.push_back(t.buildQueryExpr("first name AND last name"));
-  input_exprs.push_back(t.buildQueryExpr("first name OR last name"));
-  input_exprs.push_back(t.buildQueryExpr("( last name OR date of birth )"));
-  input_exprs.push_back(
-      t.buildQueryExpr("first name OR last name AND date of birth"));
-  input_exprs.push_back(
-      t.buildQueryExpr("( first name OR last name ) AND date of birth"));
-  input_exprs.push_back(t.buildQueryExpr(
-      "( first name AND last name ) OR ( date of birth AND address )"));
-  input_exprs.push_back(t.buildQueryExpr(
-      "(first name AND last name AND date of birth AND address)"));
-  expected.push_back("0 1 &&");
-  expected.push_back("0 1 ||");
-  expected.push_back("1 2 ||");
-  expected.push_back("0 1 2 && ||");
-  expected.push_back("0 1 || 2 &&");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 && 3 &&");
-
-  for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
-  }
-}
-
-TEST(TestQuery, TestBuildQueryBuilderFromTable)
-{
-  // width 1 columns
-  helib::Table t0({"name", "age", "weight"});
-  t0.append("height");
+  helib::Table t("TABLE(name, age, weight),height)");
   std::vector<helib::QueryBuilder> input_exprs;
   std::vector<std::string> expected;
-  input_exprs.push_back(t0.buildQueryBuilder("name AND age"));
-  input_exprs.push_back(t0.buildQueryBuilder("name OR age"));
-  input_exprs.push_back(t0.buildQueryBuilder("( age OR weight )"));
-  input_exprs.push_back(t0.buildQueryBuilder("name OR age AND weight"));
-  input_exprs.push_back(t0.buildQueryBuilder("( name OR age ) AND weight"));
   input_exprs.push_back(
-      t0.buildQueryBuilder("( name AND age ) OR ( weight AND height )"));
+      helib::QueryBuilder(t.buildQueryString("name AND age")));
+  input_exprs.push_back(helib::QueryBuilder(t.buildQueryString("name OR age")));
   input_exprs.push_back(
-      t0.buildQueryBuilder("(name AND age AND weight AND height)"));
-  expected.push_back("0 1 &&");
-  expected.push_back("0 1 ||");
-  expected.push_back("1 2 ||");
-  expected.push_back("0 1 2 && ||");
-  expected.push_back("0 1 || 2 &&");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 && 3 &&");
-
-  // Multi-width columns
-  helib::Table t1({"country", "capital", "population", "currency"},
-                  {2, 1, 1, 2});
-  input_exprs.push_back(t1.buildQueryBuilder("country AND capital"));
-  input_exprs.push_back(t1.buildQueryBuilder("country OR capital"));
-  input_exprs.push_back(t1.buildQueryBuilder("( capital OR population )"));
+      helib::QueryBuilder(t.buildQueryString("( age OR weight )")));
   input_exprs.push_back(
-      t1.buildQueryBuilder("country OR capital AND population"));
+      helib::QueryBuilder(t.buildQueryString("name OR age AND weight")));
   input_exprs.push_back(
-      t1.buildQueryBuilder("( country OR capital ) AND population"));
-  input_exprs.push_back(t1.buildQueryBuilder(
-      "( country AND capital ) OR ( population AND currency )"));
-  input_exprs.push_back(t1.buildQueryBuilder(
-      "(country AND capital AND population AND currency)"));
-  expected.push_back("0 1 && 2 &&");
-  expected.push_back("0 1 && 2 ||");
-  expected.push_back("2 3 ||");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 || 3 &&");
-  expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
-  expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
-
-  // Multi-word columns
-  helib::Table t2({"first name", "last name", "date of birth", "address"});
-  input_exprs.push_back(t2.buildQueryBuilder("first name AND last name"));
-  input_exprs.push_back(t2.buildQueryBuilder("first name OR last name"));
-  input_exprs.push_back(t2.buildQueryBuilder("( last name OR date of birth )"));
-  input_exprs.push_back(
-      t2.buildQueryBuilder("first name OR last name AND date of birth"));
-  input_exprs.push_back(
-      t2.buildQueryBuilder("( first name OR last name ) AND date of birth"));
-  input_exprs.push_back(t2.buildQueryBuilder(
-      "( first name AND last name ) OR ( date of birth AND address )"));
-  input_exprs.push_back(t2.buildQueryBuilder(
-      "(first name AND last name AND date of birth AND address)"));
+      helib::QueryBuilder(t.buildQueryString("( name OR age ) AND weight")));
+  input_exprs.push_back(helib::QueryBuilder(
+      t.buildQueryString("( name AND age ) OR ( weight AND height )")));
+  input_exprs.push_back(helib::QueryBuilder(
+      t.buildQueryString("(name AND age AND weight AND height)")));
   expected.push_back("0 1 &&");
   expected.push_back("0 1 ||");
   expected.push_back("1 2 ||");
@@ -282,57 +271,42 @@ TEST(TestQuery, TestBuildQueryBuilderFromTable)
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
 }
-
-TEST(TestQuery, ExpectedThrowsQueryExprFromTable)
-{
-  // a test for every exception that can be thrown in the Table class
-
-  // throws because number of columns does not equal number of dimensions
-  EXPECT_THROW(helib::Table({"col1", "col2"}, {1, 2, 3}), helib::LogicError);
-  helib::Table t({"name", "age", "weight"});
-
-  // throws because trying to resize a column to a negative number
-  EXPECT_THROW(t.resize(0, -2), helib::LogicError);
-
-  // throws because query badly formed (final size of operator stack is 1)
-  EXPECT_THROW(t.buildQueryExpr("(name AND age"), helib::LogicError);
-  // throws because query badly formed (final size of operand stack is 2)
-  EXPECT_THROW(t.buildQueryExpr("(name AND age) weight"), helib::LogicError);
-  // TODO: EXPECT_THROW(t.buildQueryExpr("name AND age
-  // AND"),helib::LogicError); segfaults rather than throws
-
-  // throws because unrecognised column
-  EXPECT_THROW(t.buildQueryExpr("name AND height"), helib::LogicError);
-  // throws because unrecognised column "name age"
-  EXPECT_THROW(t.buildQueryExpr("name age AND weight"), helib::LogicError);
+/**
+TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns){
+  // Multi-width columns
+  helib::Table t1({"country", "capital", "population", "currency"},
+                  {2, 1, 1, 2});
+  input_exprs.push_back(
+      QueryBuilder(t1.buildQueryString("country AND capital")));
+  input_exprs.push_back(
+      QueryBuilder(t1.buildQueryString("country OR capital")));
+  input_exprs.push_back(
+      QueryBuilder(t1.buildQueryString("( capital OR population )")));
+  input_exprs.push_back(
+      QueryBuilder(t1.buildQueryString("country OR capital AND population")));
+  input_exprs.push_back(QueryBuilder(
+      t1.buildQueryString("( country OR capital ) AND population")));
+  input_exprs.push_back(QueryBuilder(t1.buildQueryString(
+      "( country AND capital ) OR ( population AND currency )")));
+  input_exprs.push_back(QueryBuilder(t1.buildQueryString(
+      "(country AND capital AND population AND currency)")));
+  expected.push_back("0 1 && 2 &&");
+  expected.push_back("0 1 && 2 ||");
+  expected.push_back("2 3 ||");
+  expected.push_back("0 1 && 2 3 && ||");
+  expected.push_back("0 1 && 2 || 3 &&");
+  expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
+  expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
+  }
 }
+**/
 
-TEST(TestQuery, TestMakeTableFromString1DColumns)
+/**
+TEST(TestQuery, ExpectedThrowsBuildQueryBuilderFromTable)
 {
-  helib::Table t0 = helib::makeTableFromString("Table(name,age,weight)");
-  std::vector<std::string> expected_col_names = {"name", "age", "weight"};
-  std::vector<long> expected_col_dims = {1, 1, 1};
-  EXPECT_EQ(t0.getColNames(), expected_col_names);
-  EXPECT_EQ(t0.getColDims(), expected_col_dims);
-  EXPECT_EQ(t0.getColCount(), 3);
-
-  helib::Table t1 =
-      helib::makeTableFromString("Table(first name, last name, date of birth)");
-  expected_col_names = {"first name", "last name", "date of birth"};
-  expected_col_dims = {1, 1, 1};
-  EXPECT_EQ(t1.getColNames(), expected_col_names);
-  EXPECT_EQ(t1.getColDims(), expected_col_dims);
-  EXPECT_EQ(t1.getColCount(), 3);
-}
-
-TEST(TestQuery, ExpectedThrowsTableFromString)
-{
-  // Throws because string does not start with Table(
-  EXPECT_THROW(helib::makeTableFromString("Tab(x,y,z)"), helib::LogicError);
-  // Throws because string does not end with )
-  EXPECT_THROW(helib::makeTableFromString("Table(x,y,z"), helib::LogicError);
-  // throws because space between table and first bracket
-  EXPECT_THROW(helib::makeTableFromString("Table (x,y,z)"), helib::LogicError);
-}
-
+  // function calls buildQueryString and then the query builder from string
+  // constructor, so essentially a rehash of earlier tests
+}**/
 } // namespace
