@@ -701,11 +701,17 @@ public:
   }
 
   /**
-   * @brief Return the number of column entries registered in the `Table`.
+   * @brief Return the number of column entries/names registered in the `Table`.
    * @return The number of column entries.
    */
   // TODO: ask old colCount = ctxt dim, new colCount = cleartext dim?
   long getColCount() const { return columns.size(); }
+
+  /**
+   * @brief Return the total number of columns in the `Table`.
+   * @return The sum of the dimensions of each column.
+   */
+  long size() const { return sz; }
 
   /**
    * @brief Print out the contents of the `Table` to a stream of the format
@@ -726,6 +732,7 @@ private:
                                                                    "NOT"};
   // key = column name, value = (index, dim)
   std::unordered_map<std::string, std::pair<long, long>> columns;
+  long sz = 0; // Total size of the table (includes multi-dims)
 
   // Utility function that build the Table object from a string description
   void buildTableFromStr(const std::string& tableStr)
@@ -776,8 +783,66 @@ private:
       columns.insert({m[1].str(), std::make_pair(index, dim)});
       index += dim;
     }
+    sz = index; // Final index will be total size of the table
   }
 };
+
+/**
+ * @brief Given a string, it searches for a Table descriptor and a query
+ * expression that will be used to build a `QueryType`.
+ * @param s Input string to parse.
+ * @return A `QueryType` representing the query against the table described in
+ * the input string.
+ */
+inline QueryType pseudoParser(const std::string& s)
+{
+  // Ignore comment lines and empty lines
+  std::regex ignoreLines(R"((^\s*\#)|(^\s+$))");
+  std::regex findTable(R"(^\s*TABLE\s*\(.+\))");
+  std::string line, tableStr, queryStr;
+  std::istringstream is(s);
+
+  // Break up the lines into tableStr and queryStr
+  while (std::getline(is, line)) {
+    std::smatch match;
+    if (line.empty() || std::regex_search(line, ignoreLines))
+      continue; // Ignore empty lines or comments
+    else if (std::regex_search(line, match, findTable))
+      tableStr = match[0].str();
+    else // Must be a query string
+      queryStr = match[0].str();
+  }
+  assertFalse(tableStr.empty(), "Table string not found.");
+  assertFalse(queryStr.empty(), "Query string not found.");
+
+  Table t(tableStr);
+  auto queryExprStr = t.buildQueryString(queryStr);
+  return QueryBuilder(queryExprStr).build(/*columns=*/t.size());
+}
+
+/**
+ * @brief Given a filename, read the file in and build a `QueryType` object.
+ * @param filename Input file to read.
+ * @return A `QueryType` representing the query against the table described in
+ * the input file.
+ */
+inline QueryType pseudoParserFromFile(const std::string& filename)
+{
+  std::ifstream file(filename);
+  std::ostringstream os;
+
+  if (file.is_open()) {
+    std::string line;
+    while(std::getline(file, line)) {
+      os << line << "\n";
+    }
+    file.close();
+  } else {
+    throw std::runtime_error("Could not open file " + filename);
+  }
+
+  return pseudoParser(os.str());
+}
 
 } // namespace helib
 
