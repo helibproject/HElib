@@ -153,6 +153,9 @@ TEST(TestQuery, ExpectedThrowsBuildQueryExpr)
   EXPECT_THROW(helib::buildQuery("AND 0 AND 1"), helib::LogicError);
   EXPECT_THROW(helib::buildQuery("1 OR"), helib::LogicError);
 }
+
+// TODO: This requires a rethink because std::unordered_map is not ordered the
+// string is not guaranteed to print in the same order.
 TEST(TestQuery, TableFromString1DColumns)
 {
   helib::Table t("TABLE(name,age,weight)");
@@ -198,11 +201,14 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
   EXPECT_THROW(helib::Table("Tab(x,y,z)"), helib::LogicError);
   // Throws because string does not end with )
   EXPECT_THROW(helib::Table("TABLE(x,y,z"), helib::LogicError);
-  // TODO: throw for repeated column?
+  // TODO: throw for repeated column? Yes
   // EXPECT_THROW(helib::Table(TABLE(x,y,x)), helib::LogicError);
-  // TODO: throw for multiword column?
-  // TODO: Throw for brackets in column name?
-  // TODO: throw for column name with AND or OR?
+  // TODO: throw for multiword column? Yes, need to add check for this
+  // TODO: Throw for brackets in column name? Yes
+  // TODO: throw for column name with AND or OR? Yes (and NOT)
+  // TODO: Throw for non-positive dimensions
+  // TODO: Throw for dimensions that are not numbers (I think this needs to be
+  // added to the code)
 }
 
 TEST(TestQuery, BuildQueryString1DColumns)

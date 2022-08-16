@@ -499,92 +499,6 @@ private:
     return ret;
   }
 
-  /**
-   * @brief Free function that converts a logical expression in infix notation
-   * to reverse polish notation.
-   * @param s Input string in infix notation. Can have non-bracketed clauses,
-   * single operators (|,&), and multi-character arguments
-   * @return The string in polish notation with double operators separated by
-   * spaces.
-   **/
-  // TODO: Delete this function
-  inline std::string convertToPostFixOld(std::string s)
-  {
-    std::string ret = "";
-    std::stack<char> st;
-    st.push('('); // push open bracket onto stack
-    s += ")";     // append closing bracket to string
-
-    for (long i = 0; i < long(s.length()); i++) {
-      char c = s[i];
-      switch (c) {
-      case '&':
-        if (st.top() == '&') {
-          ret += " &&"; // in a non-binary And clause
-          while (s[i + 1] == '&')
-            i++; // skip next index as it's another &
-        } else {
-          st.push(c);
-          while (s[i + 1] == '&')
-            i++; // skip next index as it's another &
-        }
-        break;
-      case '|':
-        if (st.top() == '&') {
-          ret += " &&"; //&& has higher precedence than ||
-          st.pop();     // pop the &&
-          st.push(c);   // push the ||
-          while (s[i + 1] == '|')
-            i++; // skip next index as it's another |
-        } else if (st.top() == '|') {
-          ret += " ||"; // in a nonbinary or clause
-          while (s[i + 1] == '|')
-            i++; // skip next index as it's another |
-        } else {
-          st.push(c);
-          while (s[i + 1] == '|')
-            i++; // skip next index as it's another |
-        }
-        break;
-      case '(':
-        st.push(c);
-        break;
-      case ')':
-        while (st.top() != '(') {
-          if (st.top() == '&') {
-            ret += " &&";
-            st.pop();
-          } else if (st.top() == '|') {
-            ret += " ||";
-            st.pop();
-          }
-        }
-        st.pop(); // pop open bracket '('
-        break;
-
-      case ' ':
-        break;                 // not pushing spaces
-      default:                 // operands
-        if (ret.length() != 0) // string non empty, prepend a space
-          ret += " ";
-        ret += c;
-        while (!((s[i + 1] == '&') || (s[i + 1] == '|') || (s[i + 1] == ')') ||
-                 (s[i + 1] == ' '))) {
-          // multichar operands
-          ret += s[i + 1];
-          i++;
-        }
-        break;
-      }
-    }
-
-    assertEq<LogicError>(
-        0UL,
-        st.size(),
-        "error -- after conversion stack should be empty: query badly formed");
-    return ret;
-  }
-
   void printStack(std::stack<vecvec> stack)
   {
     while (!stack.empty()) {
@@ -659,9 +573,10 @@ private:
  * @class Table
  * @brief A class for converting cleartext queries with column labels to PSI
  * queries with column numbers.
- * Column labels are stored in `col_names`.
- * Optional support for columns that are wider than a single ciphertext. This is
- * stored in `col_dims`.
+ * Given a string describing a Table of the form
+ * "TABLE (col1 (dim1), col2 (dim2) ...)"
+ * a Table object will be created. This object will keep track of the column
+ * names along with their respective indices and dimensions.
  */
 class Table
 {
@@ -672,9 +587,6 @@ public:
    * columns of the table.
    */
   Table(const std::string& table) { buildTableFromStr(table); }
-
-  // TODO: Constructor that accepts raw data? i.e.
-  // Table(const std::unordered_map& data) : columns(data) {}
 
   /*************************
    * This section contains future possible public APIs for the Table class.
@@ -820,37 +732,37 @@ private:
   {
     // Look for strings of the form TABLE (...) or TABLE(...) and capture
     // everything in the outer brackets in a capture group.
-    std::regex grabTable("TABLE\\s*\\((.*)\\)");
+    // TODO: cpplint might complain about this not being a raw string.
+    std::regex grabTable("^\\s*TABLE\\s*\\((.*)\\)");
     std::smatch match;
-    auto good = std::regex_search(tableStr, match, grabTable);
+    std::regex_search(tableStr, match, grabTable);
     // Check if string is has the TABLE label and a pair of brackets
-    // TODO Could use m.empty() instead of the return
-    assertTrue(good, "Invalid table string detected. Must be of the form \"TABLE(...)\", received " + tableStr);
+    assertFalse(match.empty(), "Invalid table string detected. Must be of the form \"TABLE(...)\", received " + tableStr);
 
     // If match was found, match[0] will be string that matched and match[1]
     // will be the capture group
     std::istringstream columnStr(match[1].str());
     std::vector<std::string> vec;
+    std::string column;
     // Extract column names and (optional) dimensions
     // TODO This will add "" to the vector if there is a trailing comma
     // TODO This can probably be combined with the loop below and remove the
     // need for the vector
-    while (columnStr.good()) {
-      std::string col;
-      std::getline(columnStr, col, ',');
-      vec.emplace_back(col);
+    while (std::getline(columnStr, column, ',')) {
+      vec.emplace_back(column);
     }
 
     // This regex looks for strings with the pattern "name (dim)" where
     // number is optional and it captures "name" and "dim"
     // TODO Add option for words separated with '_' eg. col_name
+    // TODO: I think this will allow for empty dimensions i.e. name ()
+    // Should probably throw when it see this.
     std::regex grabNameAndDim("([a-zA-Z]+)\\s?(?:\\(([0-9]+)\\))?");
     long index = 0;
     for (const auto& col : vec) {
       std::smatch m;
-      good = std::regex_search(col, m, grabNameAndDim);
-      // TODO Could use m.empty() instead of the return
-      assertTrue(good, "Invalid string detected. Columns must be a comma separated list of the form \"name (dimension)\" or \"name\". Received " + col);
+      std::regex_search(col, m, grabNameAndDim);
+      assertFalse(m.empty(), "Invalid string detected. Columns must be a comma separated list of the form \"name (dimension)\" or \"name\". Received " + col);
       // Check the value is not one of the reserved keywords
       assertNeq<InvalidArgument>(operators.count(m[1].str()), 1UL, "Invalid column name: the following words are reserved {AND, OR, NOT}.");
       // Check for duplicate column names
@@ -866,22 +778,6 @@ private:
     }
   }
 };
-
-/**
- * TODO This will be replaced by the constructor Table(const std::string& s)
- * @brief Free function taking a table description of the form
- * `Table(col1, col2, col3,...)` and creates a `Table` object with
- * these column labels.
- *
- * TABLE(name type(size), ...)
- * TABLE(firstCol (2), ...)
- *
- * @param s A string of the form `Table( * , * , * , ...)`, with no commas
- * in column labels.
- * @return A `Table` object with labels as column labels and every ctxt
- * dimension equal to 1.
- */
-inline Table makeTableFromString(const std::string& s) { return Table(s); }
 
 } // namespace helib
 
