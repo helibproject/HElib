@@ -208,7 +208,7 @@ inline bool isNumber(const std::string& s)
  * @note This will add a trailing space if the string ends with one of the
  * specified characters.
  */
-void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
+inline void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
 {
   std::unordered_set<char> set = {')', '(', ','};
   for (const auto& c : s) {
