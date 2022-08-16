@@ -818,74 +818,52 @@ private:
   // Utility function that build the Table object from a string description
   void buildTableFromStr(const std::string& tableStr)
   {
-    // check string is of the form Table()
-    // TODO Add option for "TABLE ("
-    std::string prefix = "TABLE(";
-    assertTrue<LogicError>(tableStr.rfind(prefix, 0) == 0,
-                           "string does not start with Table key word");
-    assertTrue<LogicError>(tableStr[tableStr.length() - 1] == ')',
-                           "string does not end with )");
-    // construct a stringstream to parse input. Need spaces before and after
-    // commas and skip final bracket
-    std::stringstream input{" "};
-    for (long i = prefix.length(); i < long(tableStr.length()) - 1; ++i) {
-      // TODO
-      // count = s.length() - prefix.length() - 1
-      // string.substr(start, count);
-      if (tableStr[i] == ',') {
-        input << " , ";
-      } else if (tableStr[i] == '(') {
-        input << " ( ";
-      } else if (tableStr[i] == ')') {
-        input << " ) ";
-      } else {
-        input << tableStr[i];
-      }
-    }
-    std::string symbol;
-    std::string col = "";
-    long index;
-    // TODO Deal with the dimensions i.e. TABLE(colname 2, ...)
-    // If no number is present assume it is 1?
-    // TODO Add checks for valid/invalid words etc. like checks in code below
-    while (input >> symbol) {
-      if (symbol == ",") { // TODO What happens if there's a leading comma?
-        columns.insert({col, std::make_pair(index, 1L)});
-        ++index;
-        col.clear();
-      } else {
-        col += (col.length() == 0) ? symbol : " " + symbol;
-      }
-    }
-    columns.insert({col, std::make_pair(index, 1L)});
+    // Look for strings of the form TABLE (...) or TABLE(...) and capture
+    // everything in the outer brackets in a capture group.
+    std::regex grabTable("TABLE\\s*\\((.*)\\)");
+    std::smatch match;
+    auto good = std::regex_search(tableStr, match, grabTable);
+    // Check if string is has the TABLE label and a pair of brackets
+    // TODO Could use m.empty() instead of the return
+    assertTrue(good, "Invalid table string detected. Must be of the form \"TABLE(...)\", received " + tableStr);
 
-    // std::stringstream ss;
-    // // Split the string by removing brackets and commas
-    // splitString(ss, s, "(), ");
-    // // Check the string starts with 'TABLE'
-    // std::string name;
-    // ss >> name;
-    // assertEq<InvalidArgumentError>("TABLE",
-    // name,
-    // "Invalid string format, must start with the \'TABLE\' keyword");
-    // std::ostringstream oss;
-    // long index = 0;
-    // long dim;
-    // TODO Just to start let's assume dimension is always given
-    // while (ss >> name) {
-    // // Check the value is not one of the reserved keywords
-    // assertNeq<InvalidArgument>(operators.count(symbol), 1, "Invalid column
-    // name: the following words are reserved {AND, OR, NOT}."); if
-    // (!isNumber(name)) { // Must be a column name
-    // assertEq<InvalidArgument>(columns.count(name), 0, "Duplicate column name
-    // detected."); ss >> dim; columns.insert({name, std::make_pair(index,
-    // dim)});
-    // } else { // Must be a dimension
-    // // TODO Deal with optional dim
-    // }
-    // // TODO Should the index be the "actual" index of the column?
-    // index += dim + 1;
-    // }
+    // If match was found, match[0] will be string that matched and match[1]
+    // will be the capture group
+    std::istringstream columnStr(match[1].str());
+    std::vector<std::string> vec;
+    // Extract column names and (optional) dimensions
+    // TODO This will add "" to the vector if there is a trailing comma
+    // TODO This can probably be combined with the loop below and remove the
+    // need for the vector
+    while (columnStr.good()) {
+      std::string col;
+      std::getline(columnStr, col, ',');
+      vec.emplace_back(col);
+    }
+
+    // This regex looks for strings with the pattern "name (dim)" where
+    // number is optional and it captures "name" and "dim"
+    // TODO Add option for words separated with '_' eg. col_name
+    std::regex grabNameAndDim("([a-zA-Z]+)\\s?(?:\\(([0-9]+)\\))?");
+    long index = 0;
+    for (const auto& col : vec) {
+      std::smatch m;
+      good = std::regex_search(col, m, grabNameAndDim);
+      // TODO Could use m.empty() instead of the return
+      assertTrue(good, "Invalid string detected. Columns must be a comma separated list of the form \"name (dimension)\" or \"name\". Received " + col);
+      // Check the value is not one of the reserved keywords
+      assertNeq<InvalidArgument>(operators.count(m[1].str()), 1UL, "Invalid column name: the following words are reserved {AND, OR, NOT}.");
+      // Check for duplicate column names
+      assertEq<InvalidArgument>(columns.count(m[1].str()), 0UL, "Duplicate column name detected.");
+
+      // m[1] will be name and m[2] will be dim if it exists otherwise it will
+      // be an empty string.
+      // Set dimension to 1 if m[2] is empty string, otherwise set to match
+      long dim = (m[2].str().empty()) ? 1 : std::stoi(m[2].str());
+      // TODO Check for non-positive dimensions
+      columns.insert({m[1].str(), std::make_pair(index, dim)});
+      index += dim;
+    }
   }
 };
 
