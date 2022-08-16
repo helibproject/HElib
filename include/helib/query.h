@@ -746,10 +746,8 @@ public:
    */
   std::string buildQueryString(const std::string& s) const
   {
-    // TODO ask about whether it's okay to be hardcoding AND / OR
-    // TODO ask whether LogicError is the right error to throw here (vs e.g.
-    // InvalidArgument) checks on validity of query string: spaces around
-    // operators
+    // InvalidArgument) checks on validity of query string: 
+    // spaces around operators
     std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
     assertFalse(regex_search(s.begin(), s.end(), opSpaces),
                 "invalid query, require spaces around ANDs and ORs");
