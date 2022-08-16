@@ -441,34 +441,6 @@ public:
 private:
   std::string query_str;
 
-  // Utility function for adding spaces to an input stream before and after
-  // brackets given a query string.
-  void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
-  {
-    std::unordered_set<char> set = {')', '(', ','};
-    for (const auto& c : s) {
-      if (set.count(c) == 1) {
-        ss << " " << c << " ";
-        continue;
-      }
-      ss << c;
-    }
-
-    std::replace(s.begin(), s.end(), ')', " ) ");
-    std::replace(s.begin(), s.end(), '(', " ( ");
-    std::replace(s.begin(), s.end(), ',', " , ");
-
-    for (const auto& c : s) {
-      if (c == '(')
-        ss << " ( ";
-      else if (c == ')')
-        ss << " ) ";
-      else
-        ss << c;
-    }
-    ss << " )";
-  }
-
   /**
    * @brief Function that converts a space separated infix query with ANDs and
    * ORs to reverse polish notation.
@@ -701,8 +673,6 @@ private:
 class Table
 {
 public:
-  // TODO Write constructor Table(const std::string& tableString)
-
   /**
    * @brief Construct a new `Table` object from a table string.
    * @param table The input string listing the names and dimensions of the
@@ -906,7 +876,6 @@ public:
     addSpacesAroundBrackets(ss, s);
     std::ostringstream out;
     std::string symbol;
-    // TODO: This will add a trailing space
     while (ss >> symbol) {
       // Replace column names with their index
       if (columns.count(symbol) == 1) {
@@ -930,9 +899,6 @@ private:
   // TODO std::unordered_map<std::string, std::pair<int, int>>
   // key = column name, value = (index, dim)
   std::unordered_map<std::string, std::pair<long, long>> columns;
-  // std::vector<std::string> col_names;
-  // std::vector<long> col_dims;
-  // long col_count;
 
   // Utility function that build the Table object from a string description
   void buildTableFromStr(const std::string& tableStr)
@@ -961,7 +927,6 @@ private:
         input << s[i];
       }
     }
-    std::vector<std::string> columns;
     std::string symbol;
     std::string col = "";
     long index;
@@ -969,7 +934,6 @@ private:
     // If no number is present assume it is 1?
     while (input >> symbol) {
       if (symbol == ",") { // TODO What happens if there's a leading comma?
-        // columns.push_back(col);
         columns.insert({col, std::make_pair(index, 1L)});
         ++index;
         col.clear();
@@ -1006,41 +970,6 @@ private:
     // // TODO Should the index be the "actual" index of the column?
     // index += dim + 1;
     // }
-  }
-
-  std::unordered_map<std::string, QueryExpr> buildOperands() const
-  {
-    long current_index = 0;
-    std::unordered_map<std::string, QueryExpr> operands;
-    for (long i = 0; i < long(col_names.size()); i++) {
-      // assert dim > 0?
-      QueryExpr op = makeQueryExpr(current_index);
-      current_index++;
-      for (int j = 1; j < col_dims[i]; j++) {
-        QueryExpr newop = op && makeQueryExpr(current_index);
-        op = newop;
-        current_index++;
-      }
-      operands.insert(std::make_pair(col_names[i], op));
-    }
-    return operands;
-  }
-
-  std::unordered_map<std::string, std::string> buildOperandStrings() const
-  {
-    long current_index = 0;
-    std::unordered_map<std::string, std::string> operands;
-    for (long i = 0; i < long(col_names.size()); i++) {
-      // assert dim > 0?
-      std::string op = std::to_string(current_index);
-      current_index++;
-      for (int j = 1; j < col_dims[i]; j++) {
-        op += " AND " + std::to_string(current_index);
-        current_index++;
-      }
-      operands[col_names[i]] = op;
-    }
-    return operands;
   }
 };
 
