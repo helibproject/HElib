@@ -751,8 +751,7 @@ private:
     // Check if string is has the TABLE label and a pair of brackets
     assertFalse(match.empty(),
                 "Invalid table string detected. Must be of the form "
-                "\"TABLE(...)\", received " +
-                    tableStr);
+                "\"TABLE(...)\", received " + tableStr);
 
     // If match was found, match[0] will be string that matched and match[1]
     // will be the capture group
@@ -760,19 +759,22 @@ private:
     std::vector<std::string> vec;
     std::string column;
     // Extract column names and (optional) dimensions
-    // TODO This will add "" to the vector if there is a trailing comma
     // TODO This can probably be combined with the loop below and remove the
     // need for the vector
     while (std::getline(columnStr, column, ',')) {
+      // Check column entry exists i.e. something before a comma
+      assertFalse<InvalidArgument>(column.empty(),
+                                   "Empty column entry detected. Check table"
+                                   " string.");
       vec.emplace_back(column);
     }
 
     // This regex looks for strings with the pattern "name (dim)" where
     // number is optional and it captures "name" and "dim"
-    // TODO Add option for words separated with '_' eg. col_name
+    // TODO Do we want to allow column names with numbers?
     // TODO: I think this will allow for empty dimensions i.e. name ()
     // Should probably throw when it see this.
-    std::regex grabNameAndDim("([a-zA-Z]+)\\s?(?:\\(([0-9]+)\\))?");
+    std::regex grabNameAndDim("([a-zA-Z_]+)\\s?(?:\\((\\-?[0-9]+)\\))?");
     long index = 0;
     for (const auto& col : vec) {
       std::smatch m;
@@ -791,12 +793,21 @@ private:
       assertEq<InvalidArgument>(columns.count(m[1].str()),
                                 0UL,
                                 "Duplicate column name detected.");
+      // Check only up to 2 matches were found
+      assertTrue<InvalidArgument>(m.size() < 4,
+                                  "Invalid column entry detected. Accepted "
+                                  "formats are \"name (dimension)\" or \"name\""
+                                  " but received " + m[1].str() + " " +
+                                  m[2].str());
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
       // be an empty string.
       // Set dimension to 1 if m[2] is empty string, otherwise set to match
       long dim = (m[2].str().empty()) ? 1 : std::stoi(m[2].str());
-      // TODO Check for non-positive dimensions
+      // Check for non-positive dimensions
+      assertTrue<InvalidArgument>(dim > 0,
+                                  "Invalid dimension. Must be a positive "
+                                  "number, received" + std::to_string(dim));
       columns.insert({m[1].str(), std::make_pair(index, dim)});
       index += dim;
     }
