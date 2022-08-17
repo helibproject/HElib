@@ -170,10 +170,11 @@ TEST(TestQuery, TableFromString1DColumns)
                                   "Value:[1, 1]\nKey:[weight] Value:[2, 1]");
   // a table with underscores, numbers in column names, mix of upper and lower
   // case
+  // TODO: This currently throws because numbers are not allowed in column names
   tables.emplace_back(helib::Table("TABLE(Col_1,col_two, Col3)"));
   expected_tablestrings.push_back("Key:[Col_1] Value:[0, 1]\nKey:[col_two] "
                                   "Value:[1, 1]\nKey:[Col3] Value:[2, 1]");
-  std::cout << "4\n";
+  std::cout << "4\n"; // TODO: What is this for?
   // a table with keywords as substrings of column names
   tables.emplace_back(helib::Table("TABLE(FLOOR, LANDS, NOTE, OTHER, and)"));
   expected_tablestrings.push_back(
@@ -197,6 +198,7 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
   std::vector<helib::Table> tables;
   std::vector<std::string> expected_tablestrings;
 
+  // TODO: This throws because of the trailing space after the (2)
   tables.emplace_back(helib::Table("TABLE(name (2) ,age (3),weight (2))"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 2]\nKey:[age] "
                                   "Value:[2, 3]\nKey:[weight] Value:[5, 2]");
@@ -215,9 +217,9 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
 TEST(TestQuery, ExpectedThrowsTableFromString)
 {
   // Throw for string does not start with TABLE(
-  EXPECT_THROW(helib::Table("Tab(a,b,c)"), helib::LogicError);
+  EXPECT_THROW(helib::Table("Tab(a,b,c)"), helib::InvalidArgument);
   // Throw for string does not end with )
-  EXPECT_THROW(helib::Table("TABLE(a,b,c"), helib::LogicError);
+  EXPECT_THROW(helib::Table("TABLE(a,b,c"), helib::InvalidArgument);
   // Throw for empty table
   EXPECT_THROW(helib::Table("TABLE()"), helib::InvalidArgument);
   // Throw for comma syntax
@@ -227,10 +229,10 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
   // Throw for repeated column
   EXPECT_THROW(helib::Table("TABLE(a,b,a)"), helib::InvalidArgument);
   // Throw for multiword column
-  EXPECT_THROW(helib::Table("TABLE(a b, c, d)"), helib::LogicError);
-  EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"), helib::LogicError);
+  EXPECT_THROW(helib::Table("TABLE(a b, c, d)"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"), helib::InvalidArgument);
   // Throw for brackets in column name
-  EXPECT_THROW(helib::Table("TABLE((a), c, d)"), helib::LogicError);
+  EXPECT_THROW(helib::Table("TABLE((a), c, d)"), helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE((a,b,c))"), helib::InvalidArgument);
   // Throw for column name with AND, OR, and NOT
   EXPECT_THROW(helib::Table("TABLE(AND (1), OR"), helib::InvalidArgument);
@@ -335,7 +337,7 @@ TEST(TestQuery, ExpectedThrowsBuildQueryString)
 
 TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
 {
-  helib::Table t("TABLE(name, age, weight),height)");
+  helib::Table t("TABLE(name, age, weight, height)");
   std::vector<helib::QueryBuilder> input_exprs;
   std::vector<std::string> expected;
   input_exprs.push_back(
