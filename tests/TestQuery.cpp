@@ -400,13 +400,13 @@ TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns)
 
 TEST(TestQuery, QueryExprFromPseudoParser)
 {
-  long cases = 1;
+  long cases = 2;
   std::vector<std::string> tableStrings;
   std::vector<helib::QueryType> queries;
   std::vector<std::vector<std::vector<long>>> expected_Fs_vector;
   std::vector<std::vector<helib::Matrix<long>>> expected_taus_vector;
   std::vector<std::vector<long>> expected_mus_vector;
-  std::vector<long> column_sizes = {3};
+  std::vector<long> column_sizes = {3, 6};
   tableStrings.reserve(cases);
   queries.reserve(cases);
   expected_Fs_vector.reserve(cases);
@@ -419,7 +419,23 @@ TEST(TestQuery, QueryExprFromPseudoParser)
   queries.push_back(helib::pseudoParser(s));
   expected_Fs_vector.push_back({{0, 1, 2}, {0, 1, 2}});
   expected_taus_vector.push_back({{{1}, {0}, {1}}, {{0}, {1}, {1}}});
-  expected_mus_vector.push_back({{0, 0}});
+  expected_mus_vector.push_back({0, 0});
+
+  std::string s1("TABLE(name(2),age (3),weight)\n"
+                 "name AND age OR weight\n"
+                 "# This is a comment line!\n");
+  queries.push_back(helib::pseudoParser(s1));
+  expected_Fs_vector.push_back({{0, 1, 2, 3, 4, 5},
+                                {0, 1, 2, 3, 4, 5},
+                                {0, 1, 2, 3, 4, 5},
+                                {0, 1, 2, 3, 4, 5},
+                                {0, 1, 2, 3, 4, 5}});
+  expected_taus_vector.push_back({{{1}, {0}, {0}, {0}, {0}, {1}},
+                                  {{0}, {1}, {0}, {0}, {0}, {1}},
+                                  {{0}, {0}, {1}, {0}, {0}, {1}},
+                                  {{0}, {0}, {0}, {1}, {0}, {1}},
+                                  {{0}, {0}, {0}, {0}, {1}, {1}}});
+  expected_mus_vector.push_back({0, 0, 0, 0, 0});
 
   for (long j = 0; j < cases; j++) {
     EXPECT_EQ(expected_Fs_vector[j].size(), queries[j].Fs.size())
@@ -440,10 +456,28 @@ TEST(TestQuery, QueryExprFromPseudoParser)
           << "*** j = " << j << ", i= " << i;
   }
 }
-/**
-TEST(TestQuery, ExpectedThrowsBuildQueryBuilderFromTable)
+
+TEST(TestQuery, ExpectedThrowsPseudoParser)
 {
-  // function calls buildQueryString and then the query builder from string
-  // constructor, so essentially a rehash of earlier tests
-}**/
+  // no query string provided
+  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)"), helib::LogicError);
+  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
+                                   "#this is a comment line"),
+               helib::LogicError);
+  // no table string provided
+  EXPECT_THROW(helib::pseudoParser("a AND b AND c"), helib::LogicError);
+  EXPECT_THROW(helib::pseudoParser("a AND b AND c\n"
+                                   "#this is comment 1\n"
+                                   "#this is comment 2"),
+               helib::LogicError);
+  // multiple table strings provided
+  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
+                                   "TABLE(x,y,z)\n""x AND y OR z"),
+               helib::LogicError);
+  // multiple query strings provided
+  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
+                                   "a AND b AND c\n"
+                                   "a AND b OR c\n"),
+               helib::LogicError);
+}
 } // namespace
