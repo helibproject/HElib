@@ -691,15 +691,19 @@ public:
     std::ostringstream out;
     std::string symbol;
     while (ss >> symbol) {
-      // Replace column names with their index
-      if (columns.count(symbol) == 1) {
+      if (operators.count(symbol) == 1) { // Operator found
+        out << symbol << " ";
+      } else if (symbol == "(" || symbol == ")") {
+        out << symbol << " ";
+      } else { // Must be an operand. Replace name with its index
+        assertEq(columns.count(symbol),
+                 1UL,
+                 "Column name \'" + symbol + "\' not found.");
         out << columns.at(symbol).first << " ";
         // Append any additional columns if part of a composite column
         for (long i = 1; i < columns.at(symbol).second; ++i) {
           out << "AND " << columns.at(symbol).first + i << " ";
         }
-      } else {
-        out << symbol << " ";
       }
     }
     return out.str();
@@ -709,7 +713,6 @@ public:
    * @brief Return the number of column entries/names registered in the `Table`.
    * @return The number of column entries.
    */
-  // TODO: ask old colCount = ctxt dim, new colCount = cleartext dim?
   long getColCount() const { return columns.size(); }
 
   /**
@@ -746,14 +749,14 @@ private:
     // everything in the outer brackets in a capture group.
     std::regex grabTable(R"(^\s*TABLE\s*\((.+)\))");
     std::smatch match;
+    // If match was found, match[0] will be string that matched and match[1]
+    // will be the capture group
     std::regex_search(tableStr, match, grabTable);
     // Check if string is has the TABLE label and a pair of brackets
     assertFalse<InvalidArgument>(match.empty(),
                                  "Invalid table string detected. Must be of the"
                                  " form \"TABLE(...)\", received \'" + tableStr + "\'");
 
-    // If match was found, match[0] will be string that matched and match[1]
-    // will be the capture group
     // Adding a trailing comma to the string will trigger the assert in the
     // while loop if original string contained a trailing comma
     std::istringstream columnStr(match.str(1) + ",");
@@ -782,26 +785,13 @@ private:
           m.empty(),
           "Invalid string detected. Columns must be a comma separated list of "
           "the form \"name (dimension)\" or \"name\". Received \'" + col + "\'");
-      // Check the name capture is valid
-      assertFalse<InvalidArgument>(m.str(1).empty(),
-                                   "Invalid column name: valid names must be "
-                                   "underscore separated alphabetical words. "
-                                   "Received \'" + m.str(1) + "\'");
-      // Check the value is not one of the reserved keywords
-      assertNeq<InvalidArgument>(operators.count(m.str(1)),
-                                 1UL,
-                                 "Invalid column name: the following words are "
-                                 "reserved {AND, OR, NOT}.");
-      // Check for duplicate column names
-      assertEq<InvalidArgument>(columns.count(m.str(1)),
-                                0UL,
-                                "Duplicate column name detected.");
       // Check only up to 2 matches were found
       assertTrue<InvalidArgument>(m.size() < 4,
                                   "Invalid column entry detected. Accepted "
                                   "formats are \"name (dimension)\" or \"name\""
                                   " but received \'" + m.str(1) + " " +
-                                  m.str(2)) + "\'";
+                                  m.str(2) + "\'");
+      isValidName(m.str(1)); // Check for valid column name
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
       // be an empty string.
@@ -811,6 +801,25 @@ private:
       index += dim;
     }
     sz = index; // Final index will be total size of the table
+  }
+
+  // Given a string of alphabetical characters checks if it is a valid column
+  // name
+  void isValidName(const std::string& s) {
+    // Check for empty string
+    assertFalse<InvalidArgument>(s.empty(),
+                                 "Invalid column name: valid names must be "
+                                 "underscore separated alphabetical words. "
+                                 "Received \'" + s + "\'");
+    // Check the value is not one of the reserved keywords
+    assertNeq<InvalidArgument>(operators.count(s),
+                               1UL,
+                               "Invalid column name: the following words are "
+                               "reserved {AND, OR, NOT}.");
+    // Check for duplicate column names
+    assertEq<InvalidArgument>(columns.count(s),
+                              0UL,
+                              "Duplicate column name detected.");
   }
 
   // Given a string of the form (dim) checks if dim is valid and returns it
