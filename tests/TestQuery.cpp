@@ -158,42 +158,59 @@ TEST(TestQuery, ExpectedThrowsBuildQueryExpr)
 // string is not guaranteed to print in the same order.
 TEST(TestQuery, TableFromString1DColumns)
 {
-  helib::Table t("TABLE(name,age,weight)");
-  std::ostringstream tablestring;
-  t.printTable(tablestring);
-  std::string expected_tablestring =
-      "Key:[name] Value:[0,1]\nKey:[age] Value:[1,1]\nKey:[weight] Value:[2,1]";
-  EXPECT_EQ(tablestring.str(), expected_tablestring);
-  // TODO: add extra tests?
-  /**
-  helib::Table t1("TABLE (name,age,weight)");
-  std::ostringstream tablestring;
-  t1.printTable(tablestring);
-  std::string expected_tablestring =
-      "Key:[name] Value:[0,1]\nKey:[age] Value:[1,1]\nKey:[weight] Value:[2,1]";
-  EXPECT_EQ(tablestring.str(), expected_tablestring);
-  **/
+  std::vector<helib::Table> tables;
+  std::vector<std::string> expected_tablestrings;
+  tables.emplace_back(helib::Table("TABLE(name,age,weight)"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]");
+  // a table with a space between TABLE and left bracket TODO: check this is
+  // intended
+  tables.emplace_back(helib::Table("TABLE (name,age,weight)"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]");
+  // a table with underscores, numbers in column names, mix of upper and lower
+  // case
+  tables.emplace_back(helib::Table("TABLE(Col_1,col_two, Col3)"));
+  expected_tablestrings.push_back("Key:[Col_1] Value:[0, 1]\nKey:[col_two] "
+                                  "Value:[1, 1]\nKey:[Col3] Value:[2, 1]");
+  std::cout << "4\n";
+  // a table with keywords as substrings of column names
+  tables.emplace_back(helib::Table("TABLE(FLOOR, LANDS, NOTE, OTHER, and)"));
+  expected_tablestrings.push_back(
+      "Key:[FLOOR] Value:[0, 1]\nKey:[LANDS] "
+      "Value:[1, 1]\nKey:[NOTE] Value:[2, 1]\nKey:[OTHER] Value:[3, "
+      "1]\nKEY:[and] Value:[4, 1]");
+
+  for (int i = 0; i < tables.size(); i++) {
+    std::ostringstream tablestring;
+    tables[i].printTable(tablestring);
+    EXPECT_EQ(tablestring.str(), expected_tablestrings[i]) << "*** i=" << i;
+  }
+  // TODO: "blahblah TABLE(x,y,z)" is this a throw? What about "TABLE(x,y,z)
+  // TABLE(a,b,c)"?
 }
 
-/**
-TEST(TestQuery, TableFromStringMultiDimensionalColumns) {
-  // TODO
-  helib::Table t0("TABLE(name (2) ,age (3),weight (2))");
-  std::ostringstream tablestring;
-  t.printTable(tablestring);
-  std::string expected_tablestring =
-      "Key:[name] Value:[0,2]\nKey:[age] Value:[2,3]\nKey:[weight] Value:[5,2]";
-  EXPECT_EQ(tablestring.str(), expected_tablestring);
+// TODO: This requires a rethink because std::unordered_map is not ordered the
+// string is not guaranteed to print in the same order.
+TEST(TestQuery, TableFromStringMultiDimensionalColumns)
+{
+  std::vector<helib::Table> tables;
+  std::vector<std::string> expected_tablestrings;
 
-  helib::Table t("TABLE(name,age (4),weight(1))");
-  std::ostringstream tablestring;
-  t.printTable(tablestring);
-  std::string expected_tablestring =
-      "Key:[name] Value:[0,1]\nKey:[age] Value:[1,4]\nKey:[weight] Value:[5,1]";
-  EXPECT_EQ(tablestring.str(), expected_tablestring);
+  tables.emplace_back(helib::Table("TABLE(name (2) ,age (3),weight (2))"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 2]\nKey:[age] "
+                                  "Value:[2, 3]\nKey:[weight] Value:[5, 2]");
 
+  tables.emplace_back(helib::Table("TABLE(name,age (4),weight(1))"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 4]\nKey:[weight] Value:[5, 1]");
+  // TODO: add more tests here
+  for (int i = 0; i < tables.size(); i++) {
+    std::ostringstream tablestring;
+    tables[i].printTable(tablestring);
+    EXPECT_EQ(tablestring.str(), expected_tablestrings[i]) << "*** i=" << i;
+  }
 }
-**/
 
 TEST(TestQuery, ExpectedThrowsTableFromString)
 {
@@ -201,29 +218,51 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
   EXPECT_THROW(helib::Table("Tab(x,y,z)"), helib::LogicError);
   // Throws because string does not end with )
   EXPECT_THROW(helib::Table("TABLE(x,y,z"), helib::LogicError);
-  // TODO: throw for repeated column? Yes
-  // EXPECT_THROW(helib::Table(TABLE(x,y,x)), helib::LogicError);
-  // TODO: throw for multiword column? Yes, need to add check for this
-  // TODO: Throw for brackets in column name? Yes
-  // TODO: throw for column name with AND or OR? Yes (and NOT)
-  // TODO: Throw for non-positive dimensions
-  // TODO: Throw for dimensions that are not numbers (I think this needs to be
-  // added to the code)
+  // Throws because of repeated column
+  EXPECT_THROW(helib::Table("TABLE(x,y,x)"), helib::InvalidArgument);
+  // Throw for multiword column
+  EXPECT_THROW(helib::Table("TABLE(a b, c, d)"), helib::LogicError);
+  EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"), helib::LogicError);
+  // Throw for brackets in column name
+  EXPECT_THROW(helib::Table("TABLE((a), c, d)"), helib::LogicError);
+  EXPECT_THROW(helib::Table("TABLE((x,y,z))"), helib::InvalidArgument);
+  // Throw for column name with AND, OR, and NOT
+  EXPECT_THROW(helib::Table("TABLE(AND (1), OR"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE(NOT (4)"), helib::InvalidArgument);
+  // Throw for non-positive dimensions
+  EXPECT_THROW(helib::Table("TABLE (name (-1), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name, age(0) , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name, age, weight (0.5))"),
+               helib::InvalidArgument);
+  // Throw for dimensions that are not numbers, empty dimensions, and multiple
+  // dimensions
+  EXPECT_THROW(helib::Table("TABLE (name (dim(7)), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name (), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name (2), age(dim) , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name (2)(7), age, weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name (!), age , weight)"),
+               helib::InvalidArgument);
 }
 
 TEST(TestQuery, BuildQueryString1DColumns)
 {
-  helib::Table t("TABLE(name,age,weight,height)");
+  helib::Table t0("TABLE(name,age,weight,height)");
   std::vector<std::string> input_exprs;
-  input_exprs.push_back(t.buildQueryString("name AND age"));
-  input_exprs.push_back(t.buildQueryString("name OR age"));
-  input_exprs.push_back(t.buildQueryString("( age OR weight )"));
-  input_exprs.push_back(t.buildQueryString("name OR age AND weight"));
-  input_exprs.push_back(t.buildQueryString("( name OR age ) AND weight"));
+  input_exprs.push_back(t0.buildQueryString("name AND age"));
+  input_exprs.push_back(t0.buildQueryString("name OR age"));
+  input_exprs.push_back(t0.buildQueryString("( age OR weight )"));
+  input_exprs.push_back(t0.buildQueryString("name OR age AND weight"));
+  input_exprs.push_back(t0.buildQueryString("( name OR age ) AND weight"));
   input_exprs.push_back(
-      t.buildQueryString("( name AND age ) OR ( weight AND height )"));
+      t0.buildQueryString("( name AND age ) OR ( weight AND height )"));
   input_exprs.push_back(
-      t.buildQueryString("(name AND age AND weight AND height)"));
+      t0.buildQueryString("(name AND age AND weight AND height)"));
   std::vector<std::string> expected;
   expected.push_back("0 AND 1 ");
   expected.push_back("0 OR 1 ");
@@ -232,20 +271,61 @@ TEST(TestQuery, BuildQueryString1DColumns)
   expected.push_back("( 0 OR 1 ) AND 2 ");
   expected.push_back("( 0 AND 1 ) OR ( 2 AND 3 ) ");
   expected.push_back("( 0 AND 1 AND 2 AND 3 ) ");
+
+  // Table with operators as substrings
+  helib::Table t1("TABLE(FLOOR, LANDS, NOTE, OTHER, and)");
+  input_exprs.push_back(
+      t1.buildQueryString(" FLOOR OR FLOOR AND LANDS AND and"));
+  input_exprs.push_back(t1.buildQueryString("FLOOR AND OTHER"));
+  expected.push_back("0 OR 0 AND 1 AND 4 ");
+  expected.push_back("0 AND 3 ");
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i], expected[i]) << "*** i= " << i;
   }
 }
 
-/**
-TEST(TestQuery, BuildQueryStringMultidimensionalColumns) {}
-**/
-
-/**
-TEST(TestQuery, ExpectedThrowsBuildQueryString) {
-  
+TEST(TestQuery, BuildQueryStringMultidimensionalColumns)
+{
+  helib::Table t0("TABLE(a (1),b ,c (2),d)");
+  std::vector<std::string> input_exprs;
+  input_exprs.push_back(t0.buildQueryString("a AND b"));
+  input_exprs.push_back(t0.buildQueryString("a OR b"));
+  input_exprs.push_back(t0.buildQueryString("( b OR c )"));
+  input_exprs.push_back(t0.buildQueryString("a OR b AND c"));
+  input_exprs.push_back(t0.buildQueryString("( a OR b ) AND c"));
+  input_exprs.push_back(t0.buildQueryString("( a AND b ) OR ( c AND d )"));
+  input_exprs.push_back(t0.buildQueryString("(a AND b AND c AND d)"));
+  std::vector<std::string> expected;
+  expected.push_back("0 AND 1 ");
+  expected.push_back("0 OR 1 ");
+  expected.push_back("( 1 OR 2 AND 3 ) ");
+  expected.push_back("0 OR 1 AND 2 AND 3 ");
+  expected.push_back("( 0 OR 1 ) AND 2 AND 3 ");
+  expected.push_back("( 0 AND 1 ) OR ( 2 AND 3 AND 4 ) ");
+  expected.push_back("( 0 AND 1 AND 2 AND 3 AND 4 ) ");
 }
-**/
+
+TEST(TestQuery, ExpectedThrowsBuildQueryString)
+{
+  helib::Table t("TABLE(a, b, c)");
+  // Throw for consecutive operands
+  EXPECT_THROW(t.buildQueryString("a b AND"), helib::LogicError);
+  // Throws for consecutive operators and operators followed by right bracket,
+  // operators preceded by left bracket
+  EXPECT_THROW(t.buildQueryString("a AND AND b"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("(a AND) OR (b AND c)"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("(OR a)"), helib::LogicError);
+  // Throws for query starting or ending with operator
+  EXPECT_THROW(t.buildQueryString("a AND"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("OR a AND b"), helib::LogicError);
+  // Throws for unbalanced brackets
+  EXPECT_THROW(t.buildQueryString("(a AND b))"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("( (a OR c )"), helib::LogicError);
+  // Throws for unrecognised operators (also handles no spaces around AND or OR)
+  // Not yet implemented
+  EXPECT_THROW(t.buildQueryString("a AND z"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("a ANDb"), helib::LogicError);
+}
 
 TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
 {
