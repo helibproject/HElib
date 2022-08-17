@@ -658,7 +658,7 @@ public:
    */
   std::string buildQueryString(const std::string& s) const
   {
-    // checks on validity of query string: 
+    // checks on validity of query string:
     // spaces around operators: taking out because of column called e.g. ORDER
     // std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
     // assertFalse(regex_search(s.begin(), s.end(), opSpaces),
@@ -669,10 +669,15 @@ public:
                 "invalid query, found consecutive arguments");
     // No consecutive operators, no operators directly before right bracket,
     // no operators directly after left bracket
-    std::regex consecOps("\b(AND|OR|\\()+?\\s*\b(AND|OR|\\))+?");
+    std::regex consecOps("\\b(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
-    // Query does not begin or end with AND or OR
+    // no operators directly before right bracket,
+    // no operators directly after left bracket, without spaces
+    std::regex bracketsAndOps("(\\((AND|OR)\\s+)|(\\b(AND|OR)\\))");
+    assertFalse(
+        regex_search(s.begin(), s.end(), bracketsAndOps),
+        "invalid query, binary operator next to bracket of wrong type");
     std::regex startOrEndOp("^(AND|OR)|(AND|OR)$");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
                 "invalid query, query starts or ends with an operator");
@@ -744,7 +749,10 @@ private:
     std::smatch match;
     std::regex_search(tableStr, match, grabTable);
     // Check if string is has the TABLE label and a pair of brackets
-    assertFalse(match.empty(), "Invalid table string detected. Must be of the form \"TABLE(...)\", received " + tableStr);
+    assertFalse(match.empty(),
+                "Invalid table string detected. Must be of the form "
+                "\"TABLE(...)\", received " +
+                    tableStr);
 
     // If match was found, match[0] will be string that matched and match[1]
     // will be the capture group
@@ -769,11 +777,20 @@ private:
     for (const auto& col : vec) {
       std::smatch m;
       std::regex_search(col, m, grabNameAndDim);
-      assertFalse(m.empty(), "Invalid string detected. Columns must be a comma separated list of the form \"name (dimension)\" or \"name\". Received " + col);
+      assertFalse(
+          m.empty(),
+          "Invalid string detected. Columns must be a comma separated list of "
+          "the form \"name (dimension)\" or \"name\". Received " +
+              col);
       // Check the value is not one of the reserved keywords
-      assertNeq<InvalidArgument>(operators.count(m[1].str()), 1UL, "Invalid column name: the following words are reserved {AND, OR, NOT}.");
+      assertNeq<InvalidArgument>(operators.count(m[1].str()),
+                                 1UL,
+                                 "Invalid column name: the following words are "
+                                 "reserved {AND, OR, NOT}.");
       // Check for duplicate column names
-      assertEq<InvalidArgument>(columns.count(m[1].str()), 0UL, "Duplicate column name detected.");
+      assertEq<InvalidArgument>(columns.count(m[1].str()),
+                                0UL,
+                                "Duplicate column name detected.");
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
       // be an empty string.
@@ -833,7 +850,7 @@ inline QueryType pseudoParserFromFile(const std::string& filename)
 
   if (file.is_open()) {
     std::string line;
-    while(std::getline(file, line)) {
+    while (std::getline(file, line)) {
       os << line << "\n";
     }
     file.close();
