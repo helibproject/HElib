@@ -181,7 +181,7 @@ TEST(TestQuery, TableFromString1DColumns)
       "Value:[1, 1]\nKey:[NOTE] Value:[2, 1]\nKey:[OTHER] Value:[3, "
       "1]\nKEY:[and] Value:[4, 1]");
 
-  for (int i = 0; i < tables.size(); i++) {
+  for (std::size_t i = 0; i < tables.size(); i++) {
     std::ostringstream tablestring;
     tables[i].printTable(tablestring);
     EXPECT_EQ(tablestring.str(), expected_tablestrings[i]) << "*** i=" << i;
@@ -205,7 +205,7 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
                                   "Value:[1, 4]\nKey:[weight] Value:[5, 1]");
   // TODO: add more tests here
-  for (int i = 0; i < tables.size(); i++) {
+  for (std::size_t i = 0; i < tables.size(); i++) {
     std::ostringstream tablestring;
     tables[i].printTable(tablestring);
     EXPECT_EQ(tablestring.str(), expected_tablestrings[i]) << "*** i=" << i;
