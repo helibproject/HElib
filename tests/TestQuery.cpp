@@ -230,7 +230,8 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
   EXPECT_THROW(helib::Table("TABLE(a,b,a)"), helib::InvalidArgument);
   // Throw for multiword column
   EXPECT_THROW(helib::Table("TABLE(a b, c, d)"), helib::InvalidArgument);
-  EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"),
+               helib::InvalidArgument);
   // Throw for brackets in column name
   EXPECT_THROW(helib::Table("TABLE((a), c, d)"), helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE((a,b,c))"), helib::InvalidArgument);
@@ -474,7 +475,8 @@ TEST(TestQuery, ExpectedThrowsPseudoParser)
                helib::LogicError);
   // multiple table strings provided
   EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
-                                   "TABLE(x,y,z)\n""x AND y OR z"),
+                                   "TABLE(x,y,z)\n"
+                                   "x AND y OR z"),
                helib::LogicError);
   // multiple query strings provided
   EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"

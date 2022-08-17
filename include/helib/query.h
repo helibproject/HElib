@@ -341,8 +341,7 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 
   /**
    * @brief Constructor.
@@ -357,8 +356,7 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 };
 
 /**
@@ -675,9 +673,8 @@ public:
     // no operators directly before right bracket,
     // no operators directly after left bracket, without spaces
     std::regex bracketsAndOps("(\\((AND|OR)\\s+)|(\\b(AND|OR)\\))");
-    assertFalse(
-        regex_search(s.begin(), s.end(), bracketsAndOps),
-        "invalid query, binary operator next to bracket of wrong type");
+    assertFalse(regex_search(s.begin(), s.end(), bracketsAndOps),
+                "invalid query, binary operator next to bracket of wrong type");
     std::regex startOrEndOp("^(AND|OR)|(AND|OR)$");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
                 "invalid query, query starts or ends with an operator");
@@ -755,7 +752,8 @@ private:
     // Check if string is has the TABLE label and a pair of brackets
     assertFalse<InvalidArgument>(match.empty(),
                                  "Invalid table string detected. Must be of the"
-                                 " form \"TABLE(...)\", received \'" + tableStr + "\'");
+                                 " form \"TABLE(...)\", received \'" +
+                                     tableStr + "\'");
 
     // Adding a trailing comma to the string will trigger the assert in the
     // while loop if original string contained a trailing comma
@@ -784,13 +782,14 @@ private:
       assertFalse(
           m.empty(),
           "Invalid string detected. Columns must be a comma separated list of "
-          "the form \"name (dimension)\" or \"name\". Received \'" + col + "\'");
+          "the form \"name (dimension)\" or \"name\". Received \'" +
+              col + "\'");
       // Check only up to 2 matches were found
       assertTrue<InvalidArgument>(m.size() < 4,
                                   "Invalid column entry detected. Accepted "
                                   "formats are \"name (dimension)\" or \"name\""
-                                  " but received \'" + m.str(1) + " " +
-                                  m.str(2) + "\'");
+                                  " but received \'" +
+                                      m.str(1) + " " + m.str(2) + "\'");
       isValidName(m.str(1)); // Check for valid column name
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
@@ -805,12 +804,14 @@ private:
 
   // Given a string of alphabetical characters checks if it is a valid column
   // name
-  void isValidName(const std::string& s) {
+  void isValidName(const std::string& s)
+  {
     // Check for empty string
     assertFalse<InvalidArgument>(s.empty(),
                                  "Invalid column name: valid names must be "
                                  "underscore separated alphabetical words. "
-                                 "Received \'" + s + "\'");
+                                 "Received \'" +
+                                     s + "\'");
     // Check the value is not one of the reserved keywords
     assertNeq<InvalidArgument>(operators.count(s),
                                1UL,
@@ -823,20 +824,24 @@ private:
   }
 
   // Given a string of the form (dim) checks if dim is valid and returns it
-  long isValidDimension(const std::string& s) {
+  long isValidDimension(const std::string& s)
+  {
     // Check the string is surrounded by brackets
     assertTrue<InvalidArgument>(s[0] == '(' && s[s.size() - 1] == ')',
                                 "Invalid dimension. All dimensions must be "
-                                "enclosed in round brackets. Received \'" + s + "\'");
+                                "enclosed in round brackets. Received \'" +
+                                    s + "\'");
     std::string dim = s.substr(1, s.size() - 2); // Trim the brackets
     // Check for empty '()'
     assertFalse<InvalidArgument>(dim.empty(),
                                  "Invalid dimension. Brackets must enclose a "
-                                 "value. Received \'" + s + "\'");
+                                 "value. Received \'" +
+                                     s + "\'");
     // Check it is a number
     assertTrue<InvalidArgument>(isNumber(dim),
                                 "Dimension can only be an integer greater "
-                                "than 0. Received \'" + dim + "\'");
+                                "than 0. Received \'" +
+                                    dim + "\'");
     return std::stoi(dim);
   }
 };
