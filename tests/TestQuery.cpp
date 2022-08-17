@@ -214,18 +214,24 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
 
 TEST(TestQuery, ExpectedThrowsTableFromString)
 {
-  // Throws because string does not start with TABLE(
-  EXPECT_THROW(helib::Table("Tab(x,y,z)"), helib::LogicError);
-  // Throws because string does not end with )
-  EXPECT_THROW(helib::Table("TABLE(x,y,z"), helib::LogicError);
-  // Throws because of repeated column
-  EXPECT_THROW(helib::Table("TABLE(x,y,x)"), helib::InvalidArgument);
+  // Throw for string does not start with TABLE(
+  EXPECT_THROW(helib::Table("Tab(a,b,c)"), helib::LogicError);
+  // Throw for string does not end with )
+  EXPECT_THROW(helib::Table("TABLE(a,b,c"), helib::LogicError);
+  // Throw for empty table
+  EXPECT_THROW(helib::Table("TABLE()"), helib::InvalidArgument);
+  // Throw for comma syntax
+  EXPECT_THROW(helib::Table("TABLE(a,b,)"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE(,a,b)"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE(a,,b)"), helib::InvalidArgument);
+  // Throw for repeated column
+  EXPECT_THROW(helib::Table("TABLE(a,b,c)"), helib::InvalidArgument);
   // Throw for multiword column
   EXPECT_THROW(helib::Table("TABLE(a b, c, d)"), helib::LogicError);
   EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"), helib::LogicError);
   // Throw for brackets in column name
   EXPECT_THROW(helib::Table("TABLE((a), c, d)"), helib::LogicError);
-  EXPECT_THROW(helib::Table("TABLE((x,y,z))"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE((a,b,c))"), helib::InvalidArgument);
   // Throw for column name with AND, OR, and NOT
   EXPECT_THROW(helib::Table("TABLE(AND (1), OR"), helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE(NOT (4)"), helib::InvalidArgument);
@@ -357,25 +363,29 @@ TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
 }
-/**
-TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns){
+
+TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns)
+{
   // Multi-width columns
-  helib::Table t1({"country", "capital", "population", "currency"},
-                  {2, 1, 1, 2});
+  helib::Table t1("TABLE(country (2), capital, population (1), currency (2))");
+
+  std::vector<helib::QueryBuilder> input_exprs;
   input_exprs.push_back(
-      QueryBuilder(t1.buildQueryString("country AND capital")));
+      helib::QueryBuilder(t1.buildQueryString("country AND capital")));
   input_exprs.push_back(
-      QueryBuilder(t1.buildQueryString("country OR capital")));
+      helib::QueryBuilder(t1.buildQueryString("country OR capital")));
   input_exprs.push_back(
-      QueryBuilder(t1.buildQueryString("( capital OR population )")));
-  input_exprs.push_back(
-      QueryBuilder(t1.buildQueryString("country OR capital AND population")));
-  input_exprs.push_back(QueryBuilder(
+      helib::QueryBuilder(t1.buildQueryString("( capital OR population )")));
+  input_exprs.push_back(helib::QueryBuilder(
+      t1.buildQueryString("country OR capital AND population")));
+  input_exprs.push_back(helib::QueryBuilder(
       t1.buildQueryString("( country OR capital ) AND population")));
-  input_exprs.push_back(QueryBuilder(t1.buildQueryString(
+  input_exprs.push_back(helib::QueryBuilder(t1.buildQueryString(
       "( country AND capital ) OR ( population AND currency )")));
-  input_exprs.push_back(QueryBuilder(t1.buildQueryString(
+  input_exprs.push_back(helib::QueryBuilder(t1.buildQueryString(
       "(country AND capital AND population AND currency)")));
+
+  std::vector<std::string> expected;
   expected.push_back("0 1 && 2 &&");
   expected.push_back("0 1 && 2 ||");
   expected.push_back("2 3 ||");
@@ -387,8 +397,49 @@ TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns){
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
 }
-**/
 
+TEST(TestQuery, QueryExprFromPseudoParser)
+{
+  long cases = 1;
+  std::vector<std::string> tableStrings;
+  std::vector<helib::QueryType> queries;
+  std::vector<std::vector<std::vector<long>>> expected_Fs_vector;
+  std::vector<std::vector<helib::Matrix<long>>> expected_taus_vector;
+  std::vector<std::vector<long>> expected_mus_vector;
+  std::vector<long> column_sizes = {3};
+  tableStrings.reserve(cases);
+  queries.reserve(cases);
+  expected_Fs_vector.reserve(cases);
+  expected_taus_vector.reserve(cases);
+  expected_mus_vector.reserve(cases);
+  expected_mus_vector.reserve(cases);
+  std::string s("TABLE(name,age,weight)\n"
+                "name AND age OR weight\n"
+                "# This is a comment line!\n");
+  queries.push_back(helib::pseudoParser(s));
+  expected_Fs_vector.push_back({{0, 1, 2}, {0, 1, 2}});
+  expected_taus_vector.push_back({{{1}, {0}, {1}}, {{0}, {1}, {1}}});
+  expected_mus_vector.push_back({{0, 0}});
+
+  for (size_t j = 0; j < cases; j++) {
+    EXPECT_EQ(expected_Fs_vector[j].size(), queries[j].Fs.size())
+        << "*** j = " << j;
+    EXPECT_EQ(expected_mus_vector[j].size(), queries[j].mus.size())
+        << "*** j = " << j;
+    EXPECT_EQ(expected_taus_vector[j].size(), queries[j].taus.size())
+        << "*** j = " << j;
+    EXPECT_EQ(column_sizes[j], queries[j].taus[0].size()) << "*** j = " << j;
+    for (size_t i = 0; i < expected_Fs_vector[j].size(); ++i)
+      EXPECT_EQ(expected_Fs_vector[j][i], queries[j].Fs[i])
+          << "*** j = " << j << ", i = " << i;
+    for (size_t i = 0; i < expected_mus_vector[j].size(); ++i)
+      EXPECT_EQ(expected_mus_vector[j][i], queries[j].mus[i])
+          << "*** j = " << j << ", i= " << i;
+    for (size_t i = 0; i < expected_taus_vector[j].size(); ++i)
+      EXPECT_TRUE(expected_taus_vector[j][i] == queries[j].taus[i])
+          << "*** j = " << j << ", i= " << i;
+  }
+}
 /**
 TEST(TestQuery, ExpectedThrowsBuildQueryBuilderFromTable)
 {
