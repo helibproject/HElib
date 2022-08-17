@@ -838,7 +838,7 @@ inline QueryType pseudoParser(const std::string& s)
     else if (std::regex_search(line, match, findTable))
       tableStr = match[0].str();
     else // Must be a query string
-      queryStr = match[0].str();
+      queryStr = line;
   }
   assertFalse(tableStr.empty(), "Table string not found.");
   assertFalse(queryStr.empty(), "Query string not found.");
