@@ -225,7 +225,7 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
   EXPECT_THROW(helib::Table("TABLE(,a,b)"), helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE(a,,b)"), helib::InvalidArgument);
   // Throw for repeated column
-  EXPECT_THROW(helib::Table("TABLE(a,b,c)"), helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE(a,b,a)"), helib::InvalidArgument);
   // Throw for multiword column
   EXPECT_THROW(helib::Table("TABLE(a b, c, d)"), helib::LogicError);
   EXPECT_THROW(helib::Table("TABLE(a (1) b (2), c, d)"), helib::LogicError);
