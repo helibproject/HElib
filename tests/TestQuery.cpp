@@ -421,7 +421,7 @@ TEST(TestQuery, QueryExprFromPseudoParser)
   expected_taus_vector.push_back({{{1}, {0}, {1}}, {{0}, {1}, {1}}});
   expected_mus_vector.push_back({{0, 0}});
 
-  for (size_t j = 0; j < cases; j++) {
+  for (long j = 0; j < cases; j++) {
     EXPECT_EQ(expected_Fs_vector[j].size(), queries[j].Fs.size())
         << "*** j = " << j;
     EXPECT_EQ(expected_mus_vector[j].size(), queries[j].mus.size())
