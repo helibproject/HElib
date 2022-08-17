@@ -744,18 +744,19 @@ private:
   {
     // Look for strings of the form TABLE (...) or TABLE(...) and capture
     // everything in the outer brackets in a capture group.
-    // TODO: cpplint might complain about this not being a raw string.
-    std::regex grabTable("^\\s*TABLE\\s*\\((.*)\\)");
+    std::regex grabTable(R"(^\s*TABLE\s*\((.+)\))");
     std::smatch match;
     std::regex_search(tableStr, match, grabTable);
     // Check if string is has the TABLE label and a pair of brackets
-    assertFalse(match.empty(),
-                "Invalid table string detected. Must be of the form "
-                "\"TABLE(...)\", received " + tableStr);
+    assertFalse<InvalidArgument>(match.empty(),
+                                 "Invalid table string detected. Must be of the"
+                                 " form \"TABLE(...)\", received \'" + tableStr + "\'");
 
     // If match was found, match[0] will be string that matched and match[1]
     // will be the capture group
-    std::istringstream columnStr(match[1].str());
+    // Adding a trailing comma to the string will trigger the assert in the
+    // while loop if original string contained a trailing comma
+    std::istringstream columnStr(match.str(1) + ",");
     std::vector<std::string> vec;
     std::string column;
     // Extract column names and (optional) dimensions
@@ -770,11 +771,9 @@ private:
     }
 
     // This regex looks for strings with the pattern "name (dim)" where
-    // number is optional and it captures "name" and "dim"
+    // number is optional and it captures "name" and "(dim)"
     // TODO Do we want to allow column names with numbers?
-    // TODO: I think this will allow for empty dimensions i.e. name ()
-    // Should probably throw when it see this.
-    std::regex grabNameAndDim("([a-zA-Z_]+)\\s?(?:\\((.*)\\))?");
+    std::regex grabNameAndDim(R"(([a-zA-Z_]+)\s*(.*))");
     long index = 0;
     for (const auto& col : vec) {
       std::smatch m;
@@ -782,41 +781,54 @@ private:
       assertFalse(
           m.empty(),
           "Invalid string detected. Columns must be a comma separated list of "
-          "the form \"name (dimension)\" or \"name\". Received " +
-              col);
+          "the form \"name (dimension)\" or \"name\". Received \'" + col + "\'");
+      // Check the name capture is valid
+      assertFalse<InvalidArgument>(m.str(1).empty(),
+                                   "Invalid column name: valid names must be "
+                                   "underscore separated alphabetical words. "
+                                   "Received \'" + m.str(1) + "\'");
       // Check the value is not one of the reserved keywords
-      assertNeq<InvalidArgument>(operators.count(m[1].str()),
+      assertNeq<InvalidArgument>(operators.count(m.str(1)),
                                  1UL,
                                  "Invalid column name: the following words are "
                                  "reserved {AND, OR, NOT}.");
       // Check for duplicate column names
-      assertEq<InvalidArgument>(columns.count(m[1].str()),
+      assertEq<InvalidArgument>(columns.count(m.str(1)),
                                 0UL,
                                 "Duplicate column name detected.");
       // Check only up to 2 matches were found
       assertTrue<InvalidArgument>(m.size() < 4,
                                   "Invalid column entry detected. Accepted "
                                   "formats are \"name (dimension)\" or \"name\""
-                                  " but received " + m[1].str() + " " +
-                                  m[2].str());
-      // Check what is in the dimension capture is a number
-      if (!m[2].str().empty())
-        assertTrue<InvalidArgument>(isNumber(m[2].str()),
-                                    "Dimension can only be an integer greater "
-                                    "than 0. Received " + m[2].str());
+                                  " but received \'" + m.str(1) + " " +
+                                  m.str(2)) + "\'";
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
       // be an empty string.
       // Set dimension to 1 if m[2] is empty string, otherwise set to match
-      long dim = (m[2].str().empty()) ? 1 : std::stoi(m[2].str());
-      // Check for non-positive dimensions
-      assertTrue<InvalidArgument>(dim > 0,
-                                  "Invalid dimension. Must be a positive "
-                                  "number, received" + std::to_string(dim));
-      columns.insert({m[1].str(), std::make_pair(index, dim)});
+      long dim = (m.str(2).empty()) ? 1 : isValidDimension(m.str(2));
+      columns.insert({m.str(1), std::make_pair(index, dim)});
       index += dim;
     }
     sz = index; // Final index will be total size of the table
+  }
+
+  // Given a string of the form (dim) checks if dim is valid and returns it
+  long isValidDimension(const std::string& s) {
+    // Check the string is surrounded by brackets
+    assertTrue<InvalidArgument>(s[0] == '(' && s[s.size() - 1] == ')',
+                                "Invalid dimension. All dimensions must be "
+                                "enclosed in round brackets. Received \'" + s + "\'");
+    std::string dim = s.substr(1, s.size() - 2); // Trim the brackets
+    // Check for empty '()'
+    assertFalse<InvalidArgument>(dim.empty(),
+                                 "Invalid dimension. Brackets must enclose a "
+                                 "value. Received \'" + s + "\'");
+    // Check it is a number
+    assertTrue<InvalidArgument>(isNumber(dim),
+                                "Dimension can only be an integer greater "
+                                "than 0. Received \'" + dim + "\'");
+    return std::stoi(dim);
   }
 };
 
@@ -842,7 +854,7 @@ inline QueryType pseudoParser(const std::string& s)
       continue; // Ignore empty lines or comments
     else if (std::regex_search(line, match, findTable)) {
       assertTrue(tableStr.empty(), "Multiple table strings found.");
-      tableStr = match[0].str();
+      tableStr = match.str(0);
     } else { // Must be a query string
       assertTrue(queryStr.empty(), "Multiple query strings found.");
       queryStr = line;
