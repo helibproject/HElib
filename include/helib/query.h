@@ -774,7 +774,7 @@ private:
     // TODO Do we want to allow column names with numbers?
     // TODO: I think this will allow for empty dimensions i.e. name ()
     // Should probably throw when it see this.
-    std::regex grabNameAndDim("([a-zA-Z_]+)\\s?(?:\\((\\-?[0-9]+)\\))?");
+    std::regex grabNameAndDim("([a-zA-Z_]+)\\s?(?:\\((.*)\\))?");
     long index = 0;
     for (const auto& col : vec) {
       std::smatch m;
@@ -799,6 +799,11 @@ private:
                                   "formats are \"name (dimension)\" or \"name\""
                                   " but received " + m[1].str() + " " +
                                   m[2].str());
+      // Check what is in the dimension capture is a number
+      if (!m[2].str().empty())
+        assertTrue<InvalidArgument>(isNumber(m[2].str()),
+                                    "Dimension can only be an integer greater "
+                                    "than 0. Received " + m[2].str());
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
       // be an empty string.
@@ -835,10 +840,13 @@ inline QueryType pseudoParser(const std::string& s)
     std::smatch match;
     if (line.empty() || std::regex_search(line, ignoreLines))
       continue; // Ignore empty lines or comments
-    else if (std::regex_search(line, match, findTable))
+    else if (std::regex_search(line, match, findTable)) {
+      assertTrue(tableStr.empty(), "Multiple table strings found.");
       tableStr = match[0].str();
-    else // Must be a query string
+    } else { // Must be a query string
+      assertTrue(queryStr.empty(), "Multiple query strings found.");
       queryStr = line;
+    }
   }
   assertFalse(tableStr.empty(), "Table string not found.");
   assertFalse(queryStr.empty(), "Query string not found.");
