@@ -656,11 +656,6 @@ public:
    */
   std::string buildQueryString(const std::string& s) const
   {
-    // checks on validity of query string:
-    // spaces around operators: taking out because of column called e.g. ORDER
-    // std::regex opSpaces(R"((AND|OR)+?\S|\S(AND|OR)+?)");
-    // assertFalse(regex_search(s.begin(), s.end(), opSpaces),
-    //            "invalid query, require spaces around ANDs and ORs");
     // operand followed by operand -> this covers multi word columns
     std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
