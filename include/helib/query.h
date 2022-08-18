@@ -383,10 +383,10 @@ private:
   {
     // checks for well formed query: no consecutive operators, spaces around
     // ANDs and ORs, no consecutive operands (doesn't reject e.g. "(x y")
-    std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
-    std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
+    std::regex consecOps(R"((AND|OR|\()+?\s*(AND|OR|\))+?)");
+    std::regex opSpaces(R"((AND|OR)+?\S|\S(AND|OR)+?)");
     // TODO
-    // std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+    // std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
     assertFalse(regex_search(s.begin(), s.end(), opSpaces),

@@ -142,8 +142,9 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
                                   "Value:[1, 4]\nKey:[weight] Value:[5, 1]\n");
 
   tables.emplace_back(helib::Table("TABLE(first_name,age(4),weight_in_kg(1))"));
-  expected_tablestrings.push_back("Key:[first_name] Value:[0, 1]\nKey:[age] "
-                                  "Value:[1, 4]\nKey:[weight_in_kg] Value:[5, 1]\n");
+  expected_tablestrings.push_back(
+      "Key:[first_name] Value:[0, 1]\nKey:[age] "
+      "Value:[1, 4]\nKey:[weight_in_kg] Value:[5, 1]\n");
 
   for (std::size_t i = 0; i < tables.size(); i++) {
     std::ostringstream tablestring;
@@ -201,7 +202,8 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
                helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE (name (!), age , weight)"),
                helib::InvalidArgument);
-  // Throw for dimensions with incomplete/too many brackets and spaces inside the brackets
+  // Throw for dimensions with incomplete/too many brackets and spaces inside
+  // the brackets
   EXPECT_THROW(helib::Table("TABLE (name (1 ), age , weight)"),
                helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE (name ( 2 ), age , weight)"),
@@ -224,8 +226,9 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
                helib::InvalidArgument);
   EXPECT_THROW(helib::Table(" TABLE (name, age , weight) this is a table"),
                helib::InvalidArgument);
-  EXPECT_THROW(helib::Table(" TABLE (name, age , weight) TABLE (name, age , weight)"),
-               helib::InvalidArgument);
+  EXPECT_THROW(
+      helib::Table(" TABLE (name, age , weight) TABLE (name, age , weight)"),
+      helib::InvalidArgument);
 }
 
 TEST(TestQuery, BuildQueryStringMultidimensionalColumns)
