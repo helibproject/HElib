@@ -658,24 +658,24 @@ public:
   {
     // checks on validity of query string:
     // spaces around operators: taking out because of column called e.g. ORDER
-    // std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
+    // std::regex opSpaces(R"((AND|OR)+?\S|\S(AND|OR)+?)");
     // assertFalse(regex_search(s.begin(), s.end(), opSpaces),
     //            "invalid query, require spaces around ANDs and ORs");
     // operand followed by operand -> this covers multi word columns
-    std::regex consecArgs("\\b(?!AND|OR)\\w+\\s*\\b(?!AND|OR)\\w+");
+    std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
                 "invalid query, found consecutive arguments");
     // No consecutive operators, no operators directly before right bracket,
     // no operators directly after left bracket
-    std::regex consecOps("\\b(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
+    std::regex consecOps(R"(\b(AND|OR|\()+?\s*(AND|OR|\))+?)");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
     // no operators directly before right bracket,
     // no operators directly after left bracket, without spaces
-    std::regex bracketsAndOps("(\\((AND|OR)\\s+)|(\\b(AND|OR)\\))");
+    std::regex bracketsAndOps(R"((\((AND|OR)\s+)|(\b(AND|OR)\)))");
     assertFalse(regex_search(s.begin(), s.end(), bracketsAndOps),
                 "invalid query, binary operator next to bracket of wrong type");
-    std::regex startOrEndOp("^(AND|OR)|(AND|OR)$");
+    std::regex startOrEndOp(R"(^(AND|OR)|(AND|OR)$)");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
                 "invalid query, query starts or ends with an operator");
     // only valid columns? Not sure where else this would be done.
@@ -763,7 +763,7 @@ private:
     // Check if string is has the TABLE label and a pair of brackets
     assertFalse<InvalidArgument>(match.empty(),
                                  "Invalid table string detected. Must be of the"
-                                 " form \"TABLE(...)\", received \'" +
+                                 " form \'TABLE(...)\', received \'" +
                                      tableStr + "\'");
 
     // Adding a trailing comma to the string will trigger the assert in the
@@ -793,12 +793,12 @@ private:
       assertFalse(
           m.empty(),
           "Invalid string detected. Columns must be a comma separated list of "
-          "the form \"name (dimension)\" or \"name\". Received \'" +
+          "the form \'name (dimension)\' or \'name\'. Received \'" +
               col + "\'");
       // Check only up to 2 matches were found
       assertTrue<InvalidArgument>(m.size() < 4,
                                   "Invalid column entry detected. Accepted "
-                                  "formats are \"name (dimension)\" or \"name\""
+                                  "formats are \'name (dimension)\' or \'name\'"
                                   " but received \'" +
                                       m.str(1) + " " + m.str(2) + "\'");
       isValidName(m.str(1)); // Check for valid column name
