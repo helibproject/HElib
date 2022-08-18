@@ -174,7 +174,7 @@ TEST(TestQuery, TableFromString1DColumns)
   tables.emplace_back(helib::Table("TABLE(Col_1,col_two, Col3)"));
   expected_tablestrings.push_back("Key:[Col_1] Value:[0, 1]\nKey:[col_two] "
                                   "Value:[1, 1]\nKey:[Col3] Value:[2, 1]");
-  std::cout << "4\n"; // TODO: What is this for?
+  
   // a table with keywords as substrings of column names
   tables.emplace_back(helib::Table("TABLE(FLOOR, LANDS, NOTE, OTHER, and)"));
   expected_tablestrings.push_back(

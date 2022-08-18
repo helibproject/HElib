@@ -341,7 +341,8 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 
   /**
    * @brief Constructor.
@@ -356,7 +357,8 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 };
 
 /**
@@ -724,7 +726,18 @@ public:
    */
   void printTable(std::ostream& os = std::cout) const
   {
-    for (const auto& [key, value] : columns) {
+    // copy the map into a vector
+    std::vector<std::pair<std::string, std::pair<long, long>>> column_list(
+        columns.begin(),
+        columns.end());
+    // sort on index
+    std::sort(column_list.begin(),
+              column_list.end(),
+              [](const std::pair<std::string, std::pair<long, long>>& a,
+                 const std::pair<std::string, std::pair<long, long>>& b) {
+                return a.second.first < b.second.first;
+              });
+    for (const auto& [key, value] : column_list) {
       os << "Key:[" << key << "] Value:[" << value.first << ", " << value.second
          << "]\n";
     }
