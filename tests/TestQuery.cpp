@@ -154,33 +154,31 @@ TEST(TestQuery, ExpectedThrowsBuildQueryExpr)
   EXPECT_THROW(helib::buildQuery("1 OR"), helib::LogicError);
 }
 
-// TODO: This requires a rethink because std::unordered_map is not ordered the
-// string is not guaranteed to print in the same order.
 TEST(TestQuery, TableFromString1DColumns)
 {
   std::vector<helib::Table> tables;
   std::vector<std::string> expected_tablestrings;
   tables.emplace_back(helib::Table("TABLE(name,age,weight)"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
-                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]");
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
   // a table with a space between TABLE and left bracket TODO: check this is
-  // intended
+  // intended. Yes it was intended
   tables.emplace_back(helib::Table("TABLE (name,age,weight)"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
-                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]");
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
   // a table with underscores, numbers in column names, mix of upper and lower
   // case
   // TODO: This currently throws because numbers are not allowed in column names
   tables.emplace_back(helib::Table("TABLE(Col_1,col_two, Col3)"));
   expected_tablestrings.push_back("Key:[Col_1] Value:[0, 1]\nKey:[col_two] "
-                                  "Value:[1, 1]\nKey:[Col3] Value:[2, 1]");
+                                  "Value:[1, 1]\nKey:[Col3] Value:[2, 1]\n");
   
   // a table with keywords as substrings of column names
   tables.emplace_back(helib::Table("TABLE(FLOOR, LANDS, NOTE, OTHER, and)"));
   expected_tablestrings.push_back(
       "Key:[FLOOR] Value:[0, 1]\nKey:[LANDS] "
       "Value:[1, 1]\nKey:[NOTE] Value:[2, 1]\nKey:[OTHER] Value:[3, "
-      "1]\nKEY:[and] Value:[4, 1]");
+      "1]\nKey:[and] Value:[4, 1]\n");
 
   for (std::size_t i = 0; i < tables.size(); i++) {
     std::ostringstream tablestring;
@@ -191,8 +189,6 @@ TEST(TestQuery, TableFromString1DColumns)
   // TABLE(a,b,c)"?
 }
 
-// TODO: This requires a rethink because std::unordered_map is not ordered the
-// string is not guaranteed to print in the same order.
 TEST(TestQuery, TableFromStringMultiDimensionalColumns)
 {
   std::vector<helib::Table> tables;
