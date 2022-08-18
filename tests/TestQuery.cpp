@@ -165,13 +165,25 @@ TEST(TestQuery, TableFromString1DColumns)
   tables.emplace_back(helib::Table("TABLE (name,age,weight)"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
                                   "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
+
+  // spaces and tabs before and after
+  tables.emplace_back(helib::Table("  TABLE (name,age,weight) "));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
+  tables.emplace_back(helib::Table("  TABLE (name,age,weight)     "));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
+  tables.emplace_back(helib::Table("        TABLE (name,age,weight)  "));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
+                                  
   // a table with underscores, numbers in column names, mix of upper and lower
   // case
   // TODO: This currently throws because numbers are not allowed in column names
   tables.emplace_back(helib::Table("TABLE(Col_1,col_two, Col3)"));
   expected_tablestrings.push_back("Key:[Col_1] Value:[0, 1]\nKey:[col_two] "
                                   "Value:[1, 1]\nKey:[Col3] Value:[2, 1]\n");
-  
+
   // a table with keywords as substrings of column names
   tables.emplace_back(helib::Table("TABLE(FLOOR, LANDS, NOTE, OTHER, and)"));
   expected_tablestrings.push_back(
@@ -196,7 +208,7 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
   // TODO: This throws because of the trailing space after the (2)
   // tables.emplace_back(helib::Table("TABLE(name (2) ,age (3),weight (2))"));
   // expected_tablestrings.push_back("Key:[name] Value:[0, 2]\nKey:[age] "
-                                  // "Value:[2, 3]\nKey:[weight] Value:[5, 2]\n");
+  // "Value:[2, 3]\nKey:[weight] Value:[5, 2]\n");
 
   tables.emplace_back(helib::Table("TABLE(name,age (4),weight(1))"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
