@@ -766,29 +766,23 @@ private:
                                  " form \'TABLE(...)\', received \'" +
                                      tableStr + "\'");
 
-    // Adding a trailing comma to the string will trigger the assert in the
-    // while loop if original string contained a trailing comma
-    std::istringstream columnStr(match.str(1) + ",");
-    std::vector<std::string> vec;
-    std::string column;
-    // Extract column names and (optional) dimensions
-    // TODO This can probably be combined with the loop below and remove the
-    // need for the vector
-    while (std::getline(columnStr, column, ',')) {
-      // Check column entry exists i.e. something before a comma
-      assertFalse<InvalidArgument>(column.empty(),
-                                   "Empty column entry detected. Check table"
-                                   " string.");
-      vec.emplace_back(column);
-    }
-
     // This regex looks for strings with the pattern "name (dim)" where
     // number is optional and it captures "name" and "(dim)"
     // TODO Do we want to allow column names with numbers?
-    std::regex grabNameAndDim(R"(([a-zA-Z_]+)\s*(.*))");
+    std::regex grabNameAndDim(R"((\w+)\s*(.*))");
+    // std::regex grabNameAndDim(R"(([a-zA-Z_]+)\s*(.*))");
     long index = 0;
-    for (const auto& col : vec) {
-      std::smatch m;
+    // Adding a trailing comma to the string will trigger the assert in the
+    // while loop if original string contained a trailing comma
+    std::istringstream columnStr(match.str(1) + ",");
+    std::string col;
+
+    while (std::getline(columnStr, col, ',')) {
+      // Check column entry exists i.e. something before a comma
+      assertFalse<InvalidArgument>(col.empty(),
+                                   "Empty column entry detected. Check table"
+                                   " string.");
+      std::smatch m; // match
       std::regex_search(col, m, grabNameAndDim);
       assertFalse(
           m.empty(),
