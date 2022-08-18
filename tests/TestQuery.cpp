@@ -79,81 +79,6 @@ TEST(TestQuery, ExpectedThrowsInfixToPostFixNotation)
   **/
 }
 
-TEST(TestQuery, BuildQueryExprFromInfixString)
-{
-  std::vector<helib::QueryExpr> input_exprs;
-  input_exprs.push_back(helib::buildQuery("0 AND 1"));
-  input_exprs.push_back(helib::buildQuery("0 OR 1"));
-  input_exprs.push_back(helib::buildQuery("( 1 OR 2 )"));
-  input_exprs.push_back(helib::buildQuery("0 AND ( 1 OR 2 )"));
-  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR 2"));
-  input_exprs.push_back(helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 )"));
-  input_exprs.push_back(
-      helib::buildQuery("( 0 AND 1 ) OR ( ( 2 AND 3 ) AND ( 4 OR 5 ) )"));
-  std::vector<std::string> expected;
-  expected.push_back("0 1 &&");
-  expected.push_back("0 1 ||");
-  expected.push_back("1 2 ||");
-  expected.push_back("0 1 2 || &&");
-  expected.push_back("0 1 && 2 ||");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 3 && 4 5 || && ||");
-  for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
-  }
-}
-
-TEST(TestQuery, BuildQueryExprFromInfixStringSpacesAndPrecedence)
-{
-  std::vector<helib::QueryExpr> input_exprs;
-  input_exprs.push_back(helib::buildQuery("0 AND 1 AND 2"));
-  input_exprs.push_back(helib::buildQuery("( 0 OR 1 AND 2 )"));
-  input_exprs.push_back(helib::buildQuery("0 AND 1 OR 2"));
-  input_exprs.push_back(
-      helib::buildQuery("( 0 AND 1 ) OR ( 2 AND 3 ) AND ( 4 OR 5 )"));
-  std::vector<std::string> expected;
-  expected.push_back("0 1 && 2 &&");
-  expected.push_back("0 1 2 && ||");
-  expected.push_back("0 1 && 2 ||");
-  expected.push_back("0 1 && 2 3 && 4 5 || && ||");
-  for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
-  }
-}
-
-TEST(TestQuery, BuildQueryExprFromInfixStringBrackets)
-{
-  std::vector<helib::QueryExpr> input_exprs;
-  input_exprs.push_back(helib::buildQuery("(0 AND 1) OR (2 AND 3)"));
-  input_exprs.push_back(helib::buildQuery("(0 AND (1 AND (2 AND 3)))"));
-  std::vector<std::string> expected;
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 2 3 && && &&");
-  for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i].exp->eval(), expected[i]) << "*** i= " << i;
-  }
-}
-
-TEST(TestQuery, ExpectedThrowsBuildQueryExpr)
-{
-  // Throws because consecutive operator
-  EXPECT_THROW(helib::buildQuery("0 AND AND 1"), helib::LogicError);
-  // Throws because missing space before AND
-  EXPECT_THROW(helib::buildQuery("0AND 1"), helib::LogicError);
-  // Throws because expects integer columns
-  EXPECT_THROW(helib::buildQuery(" x AND y AND z"), helib::LogicError);
-  // Throws because query badly formed (final operand stack is non empty)
-  EXPECT_THROW(helib::buildQuery("(0 AND 1"), helib::LogicError);
-  // Throws because query badly formed (final operand stack is non empty)
-  EXPECT_THROW(helib::buildQuery("(0 AND 1) 2"), helib::LogicError);
-  // Throws because query badly formed (final operand stack is non empty)
-  EXPECT_THROW(helib::buildQuery("0  1 AND 2"), helib::LogicError);
-  // Throws because query badly formed (trailing ANDs or ORs)
-  EXPECT_THROW(helib::buildQuery("0 AND 1 AND"), helib::LogicError);
-  EXPECT_THROW(helib::buildQuery("AND 0 AND 1"), helib::LogicError);
-  EXPECT_THROW(helib::buildQuery("1 OR"), helib::LogicError);
-}
-
 TEST(TestQuery, TableFromString1DColumns)
 {
   std::vector<helib::Table> tables;
@@ -179,7 +104,7 @@ TEST(TestQuery, TableFromString1DColumns)
 
   // a table with underscores, numbers in column names, mix of upper and lower
   // case
-  // TODO: This currently throws because numbers are not allowed in column names
+  // TODO: This currently throws because numbers are not allowed in column names. Move to throws test
   tables.emplace_back(helib::Table("TABLE(Col_1,col_two, Col3)"));
   expected_tablestrings.push_back("Key:[Col_1] Value:[0, 1]\nKey:[col_two] "
                                   "Value:[1, 1]\nKey:[Col3] Value:[2, 1]\n");
@@ -272,40 +197,6 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
                helib::InvalidArgument);
   EXPECT_THROW(helib::Table(" TABLE (name, age , weight) TABLE (name, age , weight)"),
                helib::InvalidArgument);
-}
-
-TEST(TestQuery, BuildQueryString1DColumns)
-{
-  helib::Table t0("TABLE(name,age,weight,height)");
-  std::vector<std::string> input_exprs;
-  input_exprs.push_back(t0.buildQueryString("name AND age"));
-  input_exprs.push_back(t0.buildQueryString("name OR age"));
-  input_exprs.push_back(t0.buildQueryString("( age OR weight )"));
-  input_exprs.push_back(t0.buildQueryString("name OR age AND weight"));
-  input_exprs.push_back(t0.buildQueryString("( name OR age ) AND weight"));
-  input_exprs.push_back(
-      t0.buildQueryString("( name AND age ) OR ( weight AND height )"));
-  input_exprs.push_back(
-      t0.buildQueryString("(name AND age AND weight AND height)"));
-  std::vector<std::string> expected;
-  expected.push_back("0 AND 1 ");
-  expected.push_back("0 OR 1 ");
-  expected.push_back("( 1 OR 2 ) ");
-  expected.push_back("0 OR 1 AND 2 ");
-  expected.push_back("( 0 OR 1 ) AND 2 ");
-  expected.push_back("( 0 AND 1 ) OR ( 2 AND 3 ) ");
-  expected.push_back("( 0 AND 1 AND 2 AND 3 ) ");
-
-  // Table with operators as substrings
-  helib::Table t1("TABLE(FLOOR, LANDS, NOTE, OTHER, and)");
-  input_exprs.push_back(
-      t1.buildQueryString(" FLOOR OR FLOOR AND LANDS AND and"));
-  input_exprs.push_back(t1.buildQueryString("FLOOR AND OTHER"));
-  expected.push_back("0 OR 0 AND 1 AND 4 ");
-  expected.push_back("0 AND 3 ");
-  for (size_t i = 0; i < input_exprs.size(); ++i) {
-    EXPECT_EQ(input_exprs[i], expected[i]) << "*** i= " << i;
-  }
 }
 
 TEST(TestQuery, BuildQueryStringMultidimensionalColumns)

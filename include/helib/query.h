@@ -14,6 +14,9 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * TODO: Add the specific contributions
+ * Extended HElib to support runtime queries and Table objects.
+ * Added: class Table, pseudoParser, etc.
+ * Modified: constructor QueryBuilder(std::string)
  */
 
 #ifndef HELIB_QUERY_H
@@ -221,83 +224,6 @@ inline void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
 }
 
 /**
- * @brief Construct a `QueryExpr` from a string using Dijkstra's two stack
- * algorithm.
- * @param inFixQuery string of the logical query to build. Space separated with
- * operators of the form AND, OR.
- * @return A `QueryExpr` object of the string `inFixQuery` in polish notation.
- * @note This free function is an alternative to the constructor of
- * `QueryBuilder` that accepts a string input.
- **/
-inline QueryExpr buildQuery(const std::string& inFixQuery)
-{
-  // checks for well formed query: no consecutive operators, spaces around ANDs
-  // and ORs, no consecutive operands (doesn't reject e.g. "(x y")
-  std::regex consecOps("(AND|OR|\\()+?\\s*(AND|OR|\\))+?");
-  std::regex opSpaces("(AND|OR)+?\\S|\\S(AND|OR)+?");
-
-  assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), consecOps),
-              "invalid query, found consecutive operators");
-  assertFalse(regex_search(inFixQuery.begin(), inFixQuery.end(), opSpaces),
-              "invalid query, require spaces around ANDs and ORs");
-
-  std::stack<char> operatorStack;     // stack for operators
-  std::stack<QueryExpr> operandStack; // stack for operands
-
-  // add spaces in the input stream before and after brackets
-  std::stringstream input{" "};
-  addSpacesAroundChars(input, inFixQuery);
-  input << " )";
-  operatorStack.push('(');
-  std::string symbol;
-  while (input >> symbol) {
-    if (symbol == "(")
-      operatorStack.push('(');
-    else if (symbol == "AND" || symbol == "OR") {
-      if ((operatorStack.top() == '&') ||
-          ((operatorStack.top() == '|') && symbol == "OR")) {
-        // cases where precedence needs to be handled
-        assertTrue(operandStack.size() > 1,
-                   "not enough operands in stack: query badly formed");
-        QueryExpr rhs = operandStack.top();
-        operandStack.pop();
-        QueryExpr lhs = operandStack.top();
-        operandStack.pop();
-        operandStack.push((operatorStack.top() == '&') ? (lhs && rhs)
-                                                       : (lhs || rhs));
-        operatorStack.pop();
-      }
-      // push new operator to the stack
-      operatorStack.push((symbol == "AND") ? '&' : '|');
-    } else if (symbol == ")") {
-      // flush the operator stack
-      while (operatorStack.top() != '(') {
-        assertTrue(operandStack.size() > 1,
-                   "not enough operands in stack: query badly formed");
-        QueryExpr rhs = operandStack.top();
-        operandStack.pop();
-        QueryExpr lhs = operandStack.top();
-        operandStack.pop();
-        operandStack.push((operatorStack.top() == '&') ? (lhs && rhs)
-                                                       : (lhs || rhs));
-        operatorStack.pop();
-      }
-      operatorStack.pop(); // pop the "("
-    } else {               // Should be a number
-      assertTrue(isNumber(symbol), "String is not a number: '" + symbol + "'");
-      operandStack.push(makeQueryExpr(std::stoi(symbol)));
-    }
-  }
-  assertEq<LogicError>(0UL,
-                       operatorStack.size(),
-                       "operatorStack should be empty");
-  assertEq<LogicError>(1UL,
-                       operandStack.size(),
-                       "operandStack should have one element");
-  return operandStack.top();
-}
-
-/**
  * @struct QueryType
  * @brief Structure containing all information required for an HE query.
  **/
@@ -485,7 +411,7 @@ private:
       } else {    // operands
         if (ret.length() != 0)
           ret += " ";
-        ret += symbol; // TODO: for the intended usage, this should be a number
+        ret += symbol;
       }
     }
 
@@ -544,7 +470,7 @@ private:
         prod.reserve(op1.size() * op2.size());
         for (const auto& i : op1)
           for (const auto& j : op2) {
-            auto x = i;
+            auto x = i; // Make the set {i U j} for every i, j
             x.insert(x.end(), j.begin(), j.end());
             prod.push_back(std::move(x));
           }
@@ -678,6 +604,7 @@ public:
     assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
                          std::count(s.begin(), s.end(), ')'),
                          "invalid query, unbalanced brackets");
+    // TODO Check if empty string is needed
     std::stringstream ss(" ");
     addSpacesAroundChars(ss, s);
     std::ostringstream out;
@@ -763,9 +690,7 @@ private:
 
     // This regex looks for strings with the pattern "name (dim)" where
     // number is optional and it captures "name" and "(dim)"
-    // TODO Do we want to allow column names with numbers?
-    std::regex grabNameAndDim(R"((\w+)\s*(.*))");
-    // std::regex grabNameAndDim(R"(([a-zA-Z_]+)\s*(.*))");
+    std::regex grabNameAndDim(R"(([a-zA-Z_]+)\s*(.*))");
     long index = 0;
     // Adding a trailing comma to the string will trigger the assert in the
     // while loop if original string contained a trailing comma
@@ -826,6 +751,7 @@ private:
   // Given a string of the form (dim) checks if dim is valid and returns it
   long isValidDimension(const std::string& s)
   {
+    // TODO: Strip trailing whitespace
     // Check the string is surrounded by brackets
     assertTrue<InvalidArgument>(s[0] == '(' && s[s.size() - 1] == ')',
                                 "Invalid dimension. All dimensions must be "
@@ -902,7 +828,6 @@ inline QueryType pseudoParserFromFile(const std::string& filename)
   } else {
     throw std::runtime_error("Could not open file " + filename);
   }
-
   return pseudoParser(os.str());
 }
 
