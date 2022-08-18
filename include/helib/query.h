@@ -13,10 +13,24 @@
 /* Copyright (C) 2022 Intel Corporation
  * SPDX-License-Identifier: Apache-2.0
  *
- * TODO: Add the specific contributions
+ * TODO: Check the specific contributions are captured here
  * Extended HElib to support runtime queries and Table objects.
- * Added: class Table, pseudoParser, etc.
- * Modified: constructor QueryBuilder(std::string)
+ * Added:
+ *   class Table "and its full contents"
+ *   inline QueryType pseudoParser(const std::string& s)
+ *   inline QueryType pseudoParserFromFile(const std::string& filename)
+ *   inline void addSpacesAroundChars(std::stringstream& ss, const std::string& s)
+ *
+ * Modified:
+ *   Functions added to QueryBuilder class
+ *     constructor QueryBuilder(const std::string& query)
+ *     inline std::string convertToPostFix(const std::string& s)
+ *
+ *   Query_t -> QueryType
+ *
+ *   inline bool isNumber(const std::string& s) "now a free function"
+ *
+ *   QueryExpr is now a class instead of an alias
  */
 
 #ifndef HELIB_QUERY_H
@@ -384,7 +398,7 @@ private:
     std::stack<char> st;
 
     // Add spaces in the input stream before and after brackets
-    std::stringstream input{" "};
+    std::stringstream input;
     addSpacesAroundChars(input, s);
     input << " )";
     st.push('(');
@@ -604,8 +618,7 @@ public:
     assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
                          std::count(s.begin(), s.end(), ')'),
                          "invalid query, unbalanced brackets");
-    // TODO Check if empty string is needed
-    std::stringstream ss(" ");
+    std::stringstream ss;
     addSpacesAroundChars(ss, s);
     std::ostringstream out;
     std::string symbol;
@@ -690,7 +703,7 @@ private:
 
     // This regex looks for strings with the pattern "name (dim)" where
     // number is optional and it captures "name" and "(dim)"
-    std::regex grabNameAndDim(R"(([a-zA-Z_]+)\s*(.*))");
+    std::regex grabNameAndDim(R"(^\s*([a-zA-Z_]+)\s*(.*))");
     long index = 0;
     // Adding a trailing comma to the string will trigger the assert in the
     // while loop if original string contained a trailing comma
@@ -704,18 +717,11 @@ private:
                                    " string.");
       std::smatch m; // match
       std::regex_search(col, m, grabNameAndDim);
-      assertFalse(
-          m.empty(),
-          "Invalid string detected. Columns must be a comma separated list of "
-          "the form \'name (dimension)\' or \'name\'. Received \'" +
-              col + "\'");
-      // TODO: Check if this is necessary
-      // Check only up to 2 matches were found
-      assertTrue<InvalidArgument>(m.size() < 4,
-                                  "Invalid column entry detected. Accepted "
-                                  "formats are \'name (dimension)\' or \'name\'"
-                                  " but received \'" +
-                                      m.str(1) + " " + m.str(2) + "\'");
+      assertFalse<InvalidArgument>(m.empty(),
+                                   "Invalid string detected. Columns must be a "
+                                   "comma separated list of the form \'name "
+                                   "(dimension)\' or \'name\'. Received \'" +
+                                       col + "\'");
       isValidName(m.str(1)); // Check for valid column name
 
       // m[1] will be name and m[2] will be dim if it exists otherwise it will
