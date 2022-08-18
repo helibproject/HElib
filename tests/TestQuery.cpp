@@ -176,7 +176,7 @@ TEST(TestQuery, TableFromString1DColumns)
   tables.emplace_back(helib::Table("        TABLE (name,age,weight)  "));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
                                   "Value:[1, 1]\nKey:[weight] Value:[2, 1]\n");
-                                  
+
   // a table with underscores, numbers in column names, mix of upper and lower
   // case
   // TODO: This currently throws because numbers are not allowed in column names
@@ -263,6 +263,14 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
   EXPECT_THROW(helib::Table("TABLE (name (2)(7), age, weight)"),
                helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE (name (!), age , weight)"),
+               helib::InvalidArgument);
+  // Throw for text before Table, noncomment text after Table, two tables in one
+  // line
+  EXPECT_THROW(helib::Table("this is a table TABLE (name, age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table(" TABLE (name, age , weight) this is a table"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table(" TABLE (name, age , weight) TABLE (name, age , weight)"),
                helib::InvalidArgument);
 }
 
