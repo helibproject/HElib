@@ -114,8 +114,6 @@ TEST(TestQuery, TableFromString1DColumns)
     tables[i].printTable(tablestring);
     EXPECT_EQ(tablestring.str(), expected_tablestrings[i]) << "*** i=" << i;
   }
-  // TODO: "blahblah TABLE(x,y,z)" is this a throw? What about "TABLE(x,y,z)
-  // TABLE(a,b,c)"?
 }
 
 TEST(TestQuery, TableFromStringMultiDimensionalColumns)
@@ -130,7 +128,23 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
   tables.emplace_back(helib::Table("TABLE(name,age (4),weight(1))"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
                                   "Value:[1, 4]\nKey:[weight] Value:[5, 1]\n");
-  // TODO: add more tests here
+
+  tables.emplace_back(helib::Table("  TABLE   (name ,age (4),weight(1))   "));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 4]\nKey:[weight] Value:[5, 1]\n");
+
+  tables.emplace_back(helib::Table("TABLE(  name ,age   (4) ,   weight(1)  )"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 4]\nKey:[weight] Value:[5, 1]\n");
+
+  tables.emplace_back(helib::Table("TABLE(name,age(4),weight(1))"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 4]\nKey:[weight] Value:[5, 1]\n");
+
+  tables.emplace_back(helib::Table("TABLE(first_name,age(4),weight_in_kg(1))"));
+  expected_tablestrings.push_back("Key:[first_name] Value:[0, 1]\nKey:[age] "
+                                  "Value:[1, 4]\nKey:[weight_in_kg] Value:[5, 1]\n");
+
   for (std::size_t i = 0; i < tables.size(); i++) {
     std::ostringstream tablestring;
     tables[i].printTable(tablestring);
@@ -140,6 +154,8 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
 
 TEST(TestQuery, ExpectedThrowsTableFromString)
 {
+  // Throw for empty string
+  EXPECT_THROW(helib::Table(""), helib::InvalidArgument);
   // Throw for string does not start with TABLE(
   EXPECT_THROW(helib::Table("Tab(a,b,c)"), helib::InvalidArgument);
   // Throw for string does not end with )
@@ -185,6 +201,23 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
                helib::InvalidArgument);
   EXPECT_THROW(helib::Table("TABLE (name (!), age , weight)"),
                helib::InvalidArgument);
+  // Throw for dimensions with incomplete/too many brackets and spaces inside the brackets
+  EXPECT_THROW(helib::Table("TABLE (name (1 ), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name ( 2 ), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name 3, age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name (4, age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name 5), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name ((6), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name ((7)), age , weight)"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::Table("TABLE (name (1 2), age , weight)"),
+               helib::InvalidArgument);
   // Throw for text before Table, noncomment text after Table, two tables in one
   // line
   EXPECT_THROW(helib::Table("this is a table TABLE (name, age , weight)"),
@@ -197,7 +230,7 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
 
 TEST(TestQuery, BuildQueryStringMultidimensionalColumns)
 {
-  helib::Table t0("TABLE(a (1),b ,c (2),d)");
+  helib::Table t0("   TABLE   (a (1) ,b ,  c (2),d)  ");
   std::vector<std::string> input_exprs;
   input_exprs.push_back(t0.buildQueryString("a AND b"));
   input_exprs.push_back(t0.buildQueryString("a OR b"));
@@ -233,7 +266,7 @@ TEST(TestQuery, ExpectedThrowsBuildQueryString)
   EXPECT_THROW(t.buildQueryString("(a AND b))"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("( (a OR c )"), helib::LogicError);
   // Throws for unrecognised operators (also handles no spaces around AND or OR)
-  // Not yet implemented
+  // Throws for unrecognized operands
   EXPECT_THROW(t.buildQueryString("a AND z"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("a ANDb"), helib::LogicError);
 }
@@ -320,13 +353,16 @@ TEST(TestQuery, QueryExprFromPseudoParser)
   expected_mus_vector.reserve(cases);
   std::string s("TABLE(name,age,weight)\n"
                 "name AND age OR weight\n"
-                "# This is a comment line!\n");
+                "\n"
+                "# This is a comment line!\n"
+                "\n");
   queries.push_back(helib::pseudoParser(s));
   expected_Fs_vector.push_back({{0, 1, 2}, {0, 1, 2}});
   expected_taus_vector.push_back({{{1}, {0}, {1}}, {{0}, {1}, {1}}});
   expected_mus_vector.push_back({0, 0});
 
-  std::string s1("TABLE(name(2),age (3),weight)\n"
+  std::string s1("\n"
+                 "TABLE(name(2),age (3),weight)\n"
                  "name AND age OR weight\n"
                  "# This is a comment line!\n");
   queries.push_back(helib::pseudoParser(s1));
@@ -365,25 +401,53 @@ TEST(TestQuery, QueryExprFromPseudoParser)
 TEST(TestQuery, ExpectedThrowsPseudoParser)
 {
   // no query string provided
-  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)"), helib::LogicError);
+  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)"), helib::InvalidArgument);
   EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
                                    "#this is a comment line"),
-               helib::LogicError);
+               helib::InvalidArgument);
   // no table string provided
-  EXPECT_THROW(helib::pseudoParser("a AND b AND c"), helib::LogicError);
+  EXPECT_THROW(helib::pseudoParser("a AND b AND c"), helib::InvalidArgument);
   EXPECT_THROW(helib::pseudoParser("a AND b AND c\n"
                                    "#this is comment 1\n"
                                    "#this is comment 2"),
-               helib::LogicError);
+               helib::InvalidArgument);
   // multiple table strings provided
   EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
                                    "TABLE(x,y,z)\n"
                                    "x AND y OR z"),
-               helib::LogicError);
+               helib::InvalidArgument);
   // multiple query strings provided
   EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c)\n"
                                    "a AND b AND c\n"
                                    "a AND b OR c\n"),
-               helib::LogicError);
+               helib::InvalidArgument);
+  // two table entries on one line
+  EXPECT_THROW(helib::pseudoParser("TABLE(a, b, c) TABLE(x, y, z)\n"
+                                   "a AND c OR b\n"),
+               helib::InvalidArgument);
+  // words before or after table
+  EXPECT_THROW(helib::pseudoParser("this is a table    TABLE(a, b, c) \n"
+                                   "a AND b OR c\n"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::pseudoParser(" TABLE(a, b, c) this is a table\n"
+                                   "a AND b OR c\n"),
+               helib::InvalidArgument);
+  // commented out table or query string
+  EXPECT_THROW(helib::pseudoParser("# TABLE(a, b, c)\n"
+                                   "# this is a comment\n"
+                                   "a AND b OR c\n"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::pseudoParser("# this is a comment\n"
+                                   " TABLE(a, b, c)\n"
+                                   "# a AND b OR c\n"),
+               helib::InvalidArgument);
+  // Empty string or only comments/empty lines
+  EXPECT_THROW(helib::pseudoParser("   \n"), helib::InvalidArgument);
+  EXPECT_THROW(helib::pseudoParser("\n"
+                                   " \n"),
+               helib::InvalidArgument);
+  EXPECT_THROW(helib::pseudoParser("# this is a comment\n"
+                                   " \n"),
+               helib::InvalidArgument);
 }
 } // namespace

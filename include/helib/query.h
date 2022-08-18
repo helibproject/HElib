@@ -805,15 +805,17 @@ inline QueryType pseudoParser(const std::string& s)
     if (line.empty() || std::regex_search(line, ignoreLines))
       continue; // Ignore empty lines or comments
     else if (std::regex_search(line, match, findTable)) {
-      assertTrue(tableStr.empty(), "Multiple table strings found.");
+      assertTrue<InvalidArgument>(tableStr.empty(),
+                                  "Multiple table strings found.");
       tableStr = match.str(0);
     } else { // Must be a query string
-      assertTrue(queryStr.empty(), "Multiple query strings found.");
+      assertTrue<InvalidArgument>(queryStr.empty(),
+                                  "Multiple query strings found.");
       queryStr = line;
     }
   }
-  assertFalse(tableStr.empty(), "Table string not found.");
-  assertFalse(queryStr.empty(), "Query string not found.");
+  assertFalse<InvalidArgument>(tableStr.empty(), "Table string not found.");
+  assertFalse<InvalidArgument>(queryStr.empty(), "Query string not found.");
 
   Table t(tableStr);
   auto queryExprStr = t.buildQueryString(queryStr);
