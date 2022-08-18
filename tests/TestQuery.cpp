@@ -130,10 +130,9 @@ TEST(TestQuery, TableFromStringMultiDimensionalColumns)
   std::vector<helib::Table> tables;
   std::vector<std::string> expected_tablestrings;
 
-  // TODO: This throws because of the trailing space after the (2)
-  // tables.emplace_back(helib::Table("TABLE(name (2) ,age (3),weight (2))"));
-  // expected_tablestrings.push_back("Key:[name] Value:[0, 2]\nKey:[age] "
-  // "Value:[2, 3]\nKey:[weight] Value:[5, 2]\n");
+  tables.emplace_back(helib::Table("TABLE(name (2) ,age (3),weight (2))"));
+  expected_tablestrings.push_back("Key:[name] Value:[0, 2]\nKey:[age] "
+                                  "Value:[2, 3]\nKey:[weight] Value:[5, 2]\n");
 
   tables.emplace_back(helib::Table("TABLE(name,age (4),weight(1))"));
   expected_tablestrings.push_back("Key:[name] Value:[0, 1]\nKey:[age] "

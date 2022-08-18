@@ -677,7 +677,7 @@ private:
   {
     // Look for strings of the form TABLE (...) or TABLE(...) and capture
     // everything in the outer brackets in a capture group.
-    std::regex grabTable(R"(^\s*TABLE\s*\((.+)\))");
+    std::regex grabTable(R"(^\s*TABLE\s*\((.+)\)\s*$)");
     std::smatch match;
     // If match was found, match[0] will be string that matched and match[1]
     // will be the capture group
@@ -709,6 +709,7 @@ private:
           "Invalid string detected. Columns must be a comma separated list of "
           "the form \'name (dimension)\' or \'name\'. Received \'" +
               col + "\'");
+      // TODO: Check if this is necessary
       // Check only up to 2 matches were found
       assertTrue<InvalidArgument>(m.size() < 4,
                                   "Invalid column entry detected. Accepted "
@@ -721,6 +722,9 @@ private:
       // be an empty string.
       // Set dimension to 1 if m[2] is empty string, otherwise set to match
       long dim = (m.str(2).empty()) ? 1 : isValidDimension(m.str(2));
+      assertTrue<InvalidArgument>(dim > 0,
+                                  "Invalid dimension value. Dimension must be "
+                                  "an integer greater than 0.");
       columns.insert({m.str(1), std::make_pair(index, dim)});
       index += dim;
     }
@@ -751,13 +755,15 @@ private:
   // Given a string of the form (dim) checks if dim is valid and returns it
   long isValidDimension(const std::string& s)
   {
-    // TODO: Strip trailing whitespace
+    // Strip trailing whitespace
+    auto pos = s.find_last_not_of(" \t");
+    auto dim = (pos == std::string::npos) ? s : s.substr(0, pos + 1);
     // Check the string is surrounded by brackets
-    assertTrue<InvalidArgument>(s[0] == '(' && s[s.size() - 1] == ')',
+    assertTrue<InvalidArgument>(dim[0] == '(' && dim[dim.size() - 1] == ')',
                                 "Invalid dimension. All dimensions must be "
                                 "enclosed in round brackets. Received \'" +
-                                    s + "\'");
-    std::string dim = s.substr(1, s.size() - 2); // Trim the brackets
+                                    dim + "\'");
+    dim = dim.substr(1, dim.size() - 2); // Trim the brackets
     // Check for empty '()'
     assertFalse<InvalidArgument>(dim.empty(),
                                  "Invalid dimension. Brackets must enclose a "
@@ -783,7 +789,7 @@ inline QueryType pseudoParser(const std::string& s)
 {
   // Ignore comment lines and empty lines
   std::regex ignoreLines(R"((^\s*\#)|(^\s+$))");
-  std::regex findTable(R"(^\s*TABLE\s*\(.+\))");
+  std::regex findTable(R"(^\s*TABLE\s*\(.+\)\s*$)");
   std::string line, tableStr, queryStr;
   std::istringstream is(s);
 
