@@ -341,8 +341,7 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 
   /**
    * @brief Constructor.
@@ -357,8 +356,7 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 };
 
 /**
