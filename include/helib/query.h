@@ -382,8 +382,8 @@ private:
   inline std::string convertToPostFix(const std::string& s)
   {
     // checks for well formed query: 
-    // no consecutive arguments TODO: this needs fixing
-    std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
+    // no consecutive arguments
+    std::regex consecArgs(R"(\b(?!(AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
                 "invalid query string, found consecutive arguments");
     // No consecutive operators separated by spaces
@@ -492,7 +492,7 @@ private:
         prod.reserve(op1.size() * op2.size());
         for (const auto& i : op1)
           for (const auto& j : op2) {
-            auto x = i; // Make the set {i U j} for every i, j
+            auto x = i; // Make the set i U j for every i, j
             x.insert(x.end(), j.begin(), j.end());
             prod.push_back(std::move(x));
           }
@@ -605,8 +605,8 @@ public:
   std::string buildQueryString(const std::string& s) const
   {
     // checks for valid query
-    // no consecutive operands TODO: this needs fixing
-    std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
+    // no consecutive operands
+    std::regex consecArgs(R"(\b(?!(AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
                 "invalid query, found consecutive arguments");
     // No consecutive operators
