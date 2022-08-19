@@ -13,8 +13,9 @@
 /* Copyright (C) 2022 Intel Corporation
  * SPDX-License-Identifier: Apache-2.0
  *
- * TODO: Check the specific contributions are captured here
  * Extended HElib to support runtime queries and Table objects.
+ * Contributions include
+ *
  * Added:
  *   class Table "and its full contents"
  *   inline QueryType pseudoParser(const std::string& s)
@@ -25,6 +26,7 @@
  *   Functions added to QueryBuilder class
  *     constructor QueryBuilder(const std::string& query)
  *     inline std::string convertToPostFix(const std::string& s)
+ *     std::string getQueryString() const
  *
  *   Query_t -> QueryType
  *
@@ -381,7 +383,7 @@ private:
    **/
   inline std::string convertToPostFix(const std::string& s)
   {
-    // checks for well formed query: 
+    // checks for well formed query:
     // no consecutive arguments
     std::regex consecArgs(R"(\b(?!(AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
