@@ -11,40 +11,37 @@ namespace {
 
 TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversion)
 {
-  std::vector<helib::QueryBuilder> input_exprs;
-  input_exprs.push_back(helib::QueryBuilder("a AND b"));
-  input_exprs.push_back(helib::QueryBuilder("a OR b"));
-  input_exprs.push_back(helib::QueryBuilder("( b OR c )"));
-  input_exprs.push_back(helib::QueryBuilder("a AND ( b OR c )"));
-  input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR c"));
-  input_exprs.push_back(helib::QueryBuilder("( a AND b ) OR ( c AND d )"));
-  input_exprs.push_back(
-      helib::QueryBuilder("( a AND b ) OR ( ( c AND d ) AND ( e OR f ) )"));
-  // test spaces, order of precedence, triple char operands
-  input_exprs.push_back(helib::QueryBuilder("a AND b AND c"));
-  input_exprs.push_back(helib::QueryBuilder("( a OR b AND c )"));
-  input_exprs.push_back(helib::QueryBuilder("a AND b OR c"));
-  input_exprs.push_back(helib::QueryBuilder("aaa OR bbc OR ac"));
-  input_exprs.push_back(
-      helib::QueryBuilder("( a AND b ) OR ( c AND d ) AND ( e OR f )"));
-  // test brackets
-  input_exprs.push_back(helib::QueryBuilder("(a AND b) OR (c AND d)"));
-  input_exprs.push_back(helib::QueryBuilder("(a AND (b AND (c AND d)))"));
-  std::vector<std::string> expected;
-  expected.push_back("a b &&");
-  expected.push_back("a b ||");
-  expected.push_back("b c ||");
-  expected.push_back("a b c || &&");
-  expected.push_back("a b && c ||");
-  expected.push_back("a b && c d && ||");
-  expected.push_back("a b && c d && e f || && ||");
-  expected.push_back("a b && c &&");
-  expected.push_back("a b c && ||");
-  expected.push_back("a b && c ||");
-  expected.push_back("aaa bbc || ac ||");
-  expected.push_back("a b && c d && e f || && ||");
-  expected.push_back("a b && c d && ||");
-  expected.push_back("a b c d && && &&");
+  std::array<helib::QueryBuilder, 14> input_exprs{
+      helib::QueryBuilder("a AND b"),
+      helib::QueryBuilder("a OR b"),
+      helib::QueryBuilder("( b OR c )"),
+      helib::QueryBuilder("a AND ( b OR c )"),
+      helib::QueryBuilder("( a AND b ) OR c"),
+      helib::QueryBuilder("( a AND b ) OR ( c AND d )"),
+      helib::QueryBuilder("( a AND b ) OR ( ( c AND d ) AND ( e OR f ) )"),
+      /* test spaces, order of precedence, triple char operands */
+      helib::QueryBuilder("a AND b AND c"),
+      helib::QueryBuilder("( a OR b AND c )"),
+      helib::QueryBuilder("a AND b OR c"),
+      helib::QueryBuilder("aaa OR bbc OR ac"),
+      helib::QueryBuilder("( a AND b ) OR ( c AND d ) AND ( e OR f )"),
+      /* test brackets */
+      helib::QueryBuilder("(a AND b) OR (c AND d)"),
+      helib::QueryBuilder("(a AND (b AND (c AND d)))")};
+  std::array<std::string, 14> expected{"a b &&",
+                                       "a b ||",
+                                       "b c ||",
+                                       "a b c || &&",
+                                       "a b && c ||",
+                                       "a b && c d && ||",
+                                       "a b && c d && e f || && ||",
+                                       "a b && c &&",
+                                       "a b c && ||",
+                                       "a b && c ||",
+                                       "aaa bbc || ac ||",
+                                       "a b && c d && e f || && ||",
+                                       "a b && c d && ||",
+                                       "a b c d && && &&"};
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = " << i;
@@ -234,22 +231,24 @@ TEST(TestQuery, ExpectedThrowsTableFromString)
 TEST(TestQuery, BuildQueryStringMultidimensionalColumns)
 {
   helib::Table t0("   TABLE   (a (1) ,b ,  c (2),d)  ");
-  std::vector<std::string> input_exprs;
-  input_exprs.push_back(t0.buildQueryString("a AND b"));
-  input_exprs.push_back(t0.buildQueryString("a OR b"));
-  input_exprs.push_back(t0.buildQueryString("( b OR c )"));
-  input_exprs.push_back(t0.buildQueryString("a OR b AND c"));
-  input_exprs.push_back(t0.buildQueryString("( a OR b ) AND c"));
-  input_exprs.push_back(t0.buildQueryString("( a AND b ) OR ( c AND d )"));
-  input_exprs.push_back(t0.buildQueryString("(a AND b AND c AND d)"));
-  std::vector<std::string> expected;
-  expected.push_back("0 AND 1 ");
-  expected.push_back("0 OR 1 ");
-  expected.push_back("( 1 OR 2 AND 3 ) ");
-  expected.push_back("0 OR 1 AND 2 AND 3 ");
-  expected.push_back("( 0 OR 1 ) AND 2 AND 3 ");
-  expected.push_back("( 0 AND 1 ) OR ( 2 AND 3 AND 4 ) ");
-  expected.push_back("( 0 AND 1 AND 2 AND 3 AND 4 ) ");
+  std::array<std::string, 7> input_exprs{
+      t0.buildQueryString("a AND b"),
+      t0.buildQueryString("a OR b"),
+      t0.buildQueryString("( b OR c )"),
+      t0.buildQueryString("a OR b AND c"),
+      t0.buildQueryString("( a OR b ) AND c"),
+      t0.buildQueryString("( a AND b ) OR ( c AND d )"),
+      t0.buildQueryString("(a AND b AND c AND d)")};
+  std::array<std::string, 7> expected{"0 AND 1 ",
+                                      "0 OR 1 ",
+                                      "( 1 OR 2 AND 3 ) ",
+                                      "0 OR 1 AND 2 AND 3 ",
+                                      "( 0 OR 1 ) AND 2 AND 3 ",
+                                      "( 0 AND 1 ) OR ( 2 AND 3 AND 4 ) ",
+                                      "( 0 AND 1 AND 2 AND 3 AND 4 ) "};
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(input_exprs[i], expected[i]) << "*** i = " << i;
+  }
 }
 
 TEST(TestQuery, ExpectedThrowsBuildQueryString)
@@ -280,29 +279,23 @@ TEST(TestQuery, ExpectedThrowsBuildQueryString)
 TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
 {
   helib::Table t("TABLE(name, age, weight, height)");
-  std::vector<helib::QueryBuilder> input_exprs;
-  std::vector<std::string> expected;
-  input_exprs.push_back(
-      helib::QueryBuilder(t.buildQueryString("name AND age")));
-  input_exprs.push_back(helib::QueryBuilder(t.buildQueryString("name OR age")));
-  input_exprs.push_back(
-      helib::QueryBuilder(t.buildQueryString("( age OR weight )")));
-  input_exprs.push_back(
-      helib::QueryBuilder(t.buildQueryString("name OR age AND weight")));
-  input_exprs.push_back(
-      helib::QueryBuilder(t.buildQueryString("( name OR age ) AND weight")));
-  input_exprs.push_back(helib::QueryBuilder(
-      t.buildQueryString("( name AND age ) OR ( weight AND height )")));
-  input_exprs.push_back(helib::QueryBuilder(
-      t.buildQueryString("(name AND age AND weight AND height)")));
-  expected.push_back("0 1 &&");
-  expected.push_back("0 1 ||");
-  expected.push_back("1 2 ||");
-  expected.push_back("0 1 2 && ||");
-  expected.push_back("0 1 || 2 &&");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 && 3 &&");
-
+  std::array<helib::QueryBuilder, 7> input_exprs{
+      helib::QueryBuilder(t.buildQueryString("name AND age")),
+      helib::QueryBuilder(t.buildQueryString("name OR age")),
+      helib::QueryBuilder(t.buildQueryString("( age OR weight )")),
+      helib::QueryBuilder(t.buildQueryString("name OR age AND weight")),
+      helib::QueryBuilder(t.buildQueryString("( name OR age ) AND weight")),
+      helib::QueryBuilder(
+          t.buildQueryString("( name AND age ) OR ( weight AND height )")),
+      helib::QueryBuilder(
+          t.buildQueryString("(name AND age AND weight AND height)"))};
+  std::array<std::string, 7> expected{"0 1 &&",
+                                      "0 1 ||",
+                                      "1 2 ||",
+                                      "0 1 2 && ||",
+                                      "0 1 || 2 &&",
+                                      "0 1 && 2 3 && ||",
+                                      "0 1 && 2 && 3 &&"};
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
@@ -313,30 +306,26 @@ TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns)
   // Multi-width columns
   helib::Table t1("TABLE(country (2), capital, population (1), currency (2))");
 
-  std::vector<helib::QueryBuilder> input_exprs;
-  input_exprs.push_back(
-      helib::QueryBuilder(t1.buildQueryString("country AND capital")));
-  input_exprs.push_back(
-      helib::QueryBuilder(t1.buildQueryString("country OR capital")));
-  input_exprs.push_back(
-      helib::QueryBuilder(t1.buildQueryString("( capital OR population )")));
-  input_exprs.push_back(helib::QueryBuilder(
-      t1.buildQueryString("country OR capital AND population")));
-  input_exprs.push_back(helib::QueryBuilder(
-      t1.buildQueryString("( country OR capital ) AND population")));
-  input_exprs.push_back(helib::QueryBuilder(t1.buildQueryString(
-      "( country AND capital ) OR ( population AND currency )")));
-  input_exprs.push_back(helib::QueryBuilder(t1.buildQueryString(
-      "(country AND capital AND population AND currency)")));
+  std::array<helib::QueryBuilder, 7> input_exprs{
+      helib::QueryBuilder(t1.buildQueryString("country AND capital")),
+      helib::QueryBuilder(t1.buildQueryString("country OR capital")),
+      helib::QueryBuilder(t1.buildQueryString("( capital OR population )")),
+      helib::QueryBuilder(
+          t1.buildQueryString("country OR capital AND population")),
+      helib::QueryBuilder(
+          t1.buildQueryString("( country OR capital ) AND population")),
+      helib::QueryBuilder(t1.buildQueryString(
+          "( country AND capital ) OR ( population AND currency )")),
+      helib::QueryBuilder(t1.buildQueryString(
+          "(country AND capital AND population AND currency)"))};
 
-  std::vector<std::string> expected;
-  expected.push_back("0 1 && 2 &&");
-  expected.push_back("0 1 && 2 ||");
-  expected.push_back("2 3 ||");
-  expected.push_back("0 1 && 2 3 && ||");
-  expected.push_back("0 1 && 2 || 3 &&");
-  expected.push_back("0 1 && 2 && 3 4 && 5 && ||");
-  expected.push_back("0 1 && 2 && 3 && 4 && 5 &&");
+  std::array<std::string, 7> expected{"0 1 && 2 &&",
+                                      "0 1 && 2 ||",
+                                      "2 3 ||",
+                                      "0 1 && 2 3 && ||",
+                                      "0 1 && 2 || 3 &&",
+                                      "0 1 && 2 && 3 4 && 5 && ||",
+                                      "0 1 && 2 && 3 && 4 && 5 &&"};
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
