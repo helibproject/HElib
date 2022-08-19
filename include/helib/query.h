@@ -381,19 +381,27 @@ private:
    **/
   inline std::string convertToPostFix(const std::string& s)
   {
-    // checks for well formed query: no consecutive operators, spaces around
-    // ANDs and ORs, no consecutive operands (doesn't reject e.g. "(x y")
-    std::regex consecOps(R"((AND|OR|\()+?\s*(AND|OR|\))+?)");
-    std::regex opSpaces(R"((AND|OR)+?\S|\S(AND|OR)+?)");
-    // TODO
-    // std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
+    // checks for well formed query: 
+    // no consecutive arguments TODO: this needs fixing
+    std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
+    assertFalse(regex_search(s.begin(), s.end(), consecArgs),
+                "invalid query string, found consecutive arguments");
+    // No consecutive operators separated by spaces
+    std::regex consecOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
-                "invalid query, found consecutive operators");
-    assertFalse(regex_search(s.begin(), s.end(), opSpaces),
-                "invalid query, require spaces around ANDs and ORs");
-    // taking this out to allow for multi word arguments
-    /**assertFalse(regex_search(s.begin(), s.end(), consecArgs),
-                "invalid query, found consecutive arguments");**/
+                "invalid query string, found consecutive operators");
+    // no empty brackets, no operators directly before right bracket,
+    // no operators directly after left bracket
+    std::regex bracketsAndOps(R"((\(\s*(AND|OR|\))\s+)|(\b(AND|OR)\s*\)))");
+    assertFalse(regex_search(s.begin(), s.end(), bracketsAndOps),
+                "invalid query, binary operator next to bracket of wrong type");
+    std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR)\s*$)");
+    assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
+                "invalid query, query starts or ends with an operator");
+    // number of left brackets = number of right brackets
+    assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
+                         std::count(s.begin(), s.end(), ')'),
+                         "invalid query, unbalanced brackets");
     std::string ret = "";
     std::stack<char> st;
 
@@ -596,24 +604,23 @@ public:
    */
   std::string buildQueryString(const std::string& s) const
   {
-    // operand followed by operand -> this covers multi word columns
+    // checks for valid query
+    // no consecutive operands TODO: this needs fixing
     std::regex consecArgs(R"(\b(?!AND|OR)\w+\s*\b(?!AND|OR)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
                 "invalid query, found consecutive arguments");
-    // No consecutive operators, no operators directly before right bracket,
-    // no operators directly after left bracket
-    std::regex consecOps(R"(\b(AND|OR|\()+?\s*(AND|OR|\))+?)");
+    // No consecutive operators
+    std::regex consecOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query, found consecutive operators");
-    // no operators directly before right bracket,
-    // no operators directly after left bracket, without spaces
-    std::regex bracketsAndOps(R"((\((AND|OR)\s+)|(\b(AND|OR)\)))");
+    // no empty brackets, no operators directly before right bracket,
+    // no operators directly after left bracket
+    std::regex bracketsAndOps(R"((\(\s*(AND|OR|\))\s+)|(\b(AND|OR)\s*\)))");
     assertFalse(regex_search(s.begin(), s.end(), bracketsAndOps),
                 "invalid query, binary operator next to bracket of wrong type");
-    std::regex startOrEndOp(R"(^(AND|OR)|(AND|OR)$)");
+    std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR)\s*$)");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
                 "invalid query, query starts or ends with an operator");
-    // only valid columns? Not sure where else this would be done.
     // number of left brackets = number of right brackets
     assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
                          std::count(s.begin(), s.end(), ')'),
