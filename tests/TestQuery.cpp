@@ -53,30 +53,30 @@ TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversion)
 
 TEST(TestQuery, ExpectedThrowsInfixToPostFixNotation)
 {
-  // throws because left bracket next to AND
+  // throws because left bracket immediately before AND/OR
   EXPECT_THROW(helib::QueryBuilder("(AND a OR b"), helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("( OR a OR b"), helib::LogicError);
+  // throws because right bracket immediately after AND/OR
+  EXPECT_THROW(helib::QueryBuilder("( a AND a OR )"), helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("(a AND a AND)"), helib::LogicError);
   // throws because OR next to AND
   EXPECT_THROW(helib::QueryBuilder("c OR AND b"), helib::LogicError);
   // throws because left bracket next to right bracket
   EXPECT_THROW(helib::QueryBuilder("() c AND b"), helib::LogicError);
-  // throws because no spaces around AND
-  EXPECT_THROW(helib::QueryBuilder("aAND c OR b"), helib::LogicError);
-  // throws because no spaces around OR
-  EXPECT_THROW(helib::QueryBuilder("c ORb"), helib::LogicError);
-
-  // TODO: uncomment these when extra query checks added
-  /**
   // throws because consecutive operands
   EXPECT_THROW(helib::QueryBuilder("a b c"),helib::LogicError);
   EXPECT_THROW(helib::QueryBuilder("date of birth AND c"),helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("aAND c OR b"), helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("c aAND OR b"), helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder("c ORb"), helib::LogicError);
+  EXPECT_THROW(helib::QueryBuilder(" ORb c"), helib::LogicError);
   // throws because unequal number of left and right brackets
   EXPECT_THROW(helib::QueryBuilder("(a AND b))"),helib::LogicError);
   EXPECT_THROW(helib::QueryBuilder("((b)"),helib::LogicError);
   // throws because expression starts with AND
   EXPECT_THROW(helib::QueryBuilder("AND a AND b"),helib::LogicError);
-  // throws because expression starts with OR
+  // throws because expression ends with OR
   EXPECT_THROW(helib::QueryBuilder("y OR "),helib::LogicError);
-  **/
 }
 
 TEST(TestQuery, TableFromString1DColumns)
@@ -262,9 +262,11 @@ TEST(TestQuery, ExpectedThrowsBuildQueryString)
   EXPECT_THROW(t.buildQueryString("a AND AND b"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("(a AND) OR (b AND c)"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("(OR a)"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("() c AND b"),helib::LogicError);
   // Throws for query starting or ending with operator
   EXPECT_THROW(t.buildQueryString("a AND"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("OR a AND b"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("a OR "),helib::LogicError);
   // Throws for unbalanced brackets
   EXPECT_THROW(t.buildQueryString("(a AND b))"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("( (a OR c )"), helib::LogicError);
@@ -272,6 +274,7 @@ TEST(TestQuery, ExpectedThrowsBuildQueryString)
   // Throws for unrecognized operands
   EXPECT_THROW(t.buildQueryString("a AND z"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("a ANDb"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("c ORb"),helib::LogicError);
 }
 
 TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
