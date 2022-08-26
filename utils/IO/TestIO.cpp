@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <helib/helib.h>
+#include <helib/debugging.h>
 #include <helib/partialMatch.h>
 
 #include "io.h"
@@ -12,20 +13,71 @@ namespace {
 
 using Ptxt = helib::Ptxt<helib::BGV>;
 
-TEST(TestIO, readingPtxtDBWorksCorrectly) {
-  // clang-format off
-  helib::Context context = helib::ContextBuilder<helib::BGV>()
-                               .m(24)
-                               .p(37)
-                               .r(1)
-                               .bits(100)
-                               .build();
-  // clang-format on
-  helib::SecKey sk(context);
-  sk.GenSecKey();
-  addSome1DMatrices(sk);
-  helib::PubKey& pk = sk;
+struct BGVParameters
+{
+  BGVParameters(unsigned m,
+                unsigned p,
+                unsigned r,
+                unsigned bits) :
+      m(m), p(p), r(r), bits(bits){};
 
+  const unsigned m;
+  const unsigned p;
+  const unsigned r;
+  const unsigned bits;
+
+  friend std::ostream& operator<<(std::ostream& os, const BGVParameters& params)
+  {
+    return os << "{"
+              << "m = " << params.m << ", "
+              << "p = " << params.p << ", "
+              << "r = " << params.r << ", "
+              << "bits = " << params.bits << "}";
+  }
+};
+
+class TestIO : public ::testing::TestWithParam<BGVParameters>
+{
+protected:
+  const unsigned long m;
+  const unsigned long p;
+  const unsigned long r;
+  const unsigned long bits;
+  helib::Context context;
+  helib::SecKey secretKey;
+  helib::PubKey publicKey;
+  const helib::EncryptedArray& ea;
+
+  TestIO() :
+      m(GetParam().m),
+      p(GetParam().p),
+      r(GetParam().r),
+      bits(GetParam().bits),
+      context(helib::ContextBuilder<helib::BGV>()
+                  .m(m)
+                  .p(p)
+                  .r(r)
+                  .bits(bits)
+                  .build()),
+      secretKey(context),
+      publicKey((secretKey.GenSecKey(),
+                 addFrbMatrices(secretKey),
+                 addSome1DMatrices(secretKey),
+                 secretKey)),
+      ea(context.getEA())
+  {}
+
+  virtual void SetUp() override
+  {
+    helib::setupDebugGlobals(&secretKey, context.shareEA());
+  };
+
+  virtual void TearDown() override { helib::cleanupDebugGlobals(); }
+
+  virtual ~TestIO() = default;
+};
+
+TEST_P(TestIO, readingPtxtDBWorksCorrectly) {
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -50,7 +102,7 @@ TEST(TestIO, readingPtxtDBWorksCorrectly) {
   ss << context;
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
-  auto deserialized_db = readDbFromFile<Ptxt>(ptxtFile, contextp, pk);
+  auto deserialized_db = readDbFromFile<Ptxt>(ptxtFile, contextp, publicKey);
   auto ptxt_matrix = deserialized_db.getData();
   std::remove(ptxtFile.c_str());
 
@@ -61,20 +113,7 @@ TEST(TestIO, readingPtxtDBWorksCorrectly) {
   }
 }
 
-TEST(TestIO, readingCtxtDBWorksCorrectly) {
-  // clang-format off
-  helib::Context context = helib::ContextBuilder<helib::BGV>()
-                               .m(24)
-                               .p(37)
-                               .r(1)
-                               .bits(100)
-                               .build();
-  // clang-format on
-  helib::SecKey sk(context);
-  sk.GenSecKey();
-  addSome1DMatrices(sk);
-  helib::PubKey& pk = sk;
-
+TEST_P(TestIO, readingCtxtDBWorksCorrectly) {
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -91,18 +130,18 @@ TEST(TestIO, readingCtxtDBWorksCorrectly) {
   ptxt_db(0, 1) = p3;
   ptxt_db(1, 1) = p4;
 
-  helib::Ctxt c1(pk);
-  helib::Ctxt c2(pk);
-  helib::Ctxt c3(pk);
-  helib::Ctxt c4(pk);
+  helib::Ctxt c1(publicKey);
+  helib::Ctxt c2(publicKey);
+  helib::Ctxt c3(publicKey);
+  helib::Ctxt c4(publicKey);
 
-  pk.Encrypt(c1, p1);
-  pk.Encrypt(c2, p2);
-  pk.Encrypt(c3, p3);
-  pk.Encrypt(c4, p4);
+  publicKey.Encrypt(c1, p1);
+  publicKey.Encrypt(c2, p2);
+  publicKey.Encrypt(c3, p3);
+  publicKey.Encrypt(c4, p4);
 
   std::string ctxtFile = "db.ctxt";
-  helib::Ctxt zero_ctxt(pk);
+  helib::Ctxt zero_ctxt(publicKey);
   helib::Matrix<helib::Ctxt> encrypted_db(zero_ctxt, 2, 2);
   encrypted_db(0, 0) = c1;
   encrypted_db(1, 0) = c2;
@@ -115,33 +154,20 @@ TEST(TestIO, readingCtxtDBWorksCorrectly) {
   ss << context;
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
-  auto deserialized_db = readDbFromFile<helib::Ctxt>(ctxtFile, contextp, pk);
+  auto deserialized_db = readDbFromFile<helib::Ctxt>(ctxtFile, contextp, publicKey);
   auto encrypted_matrix = deserialized_db.getData();
   std::remove(ctxtFile.c_str());  // Remove file
 
   for (std::size_t i = 0; i < encrypted_db.dims(0); ++i) {
     for (std::size_t j = 0; j < encrypted_db.dims(1); ++j) {
       Ptxt decrypted_entry(context);
-      sk.Decrypt(decrypted_entry, encrypted_matrix(i, j));
+      secretKey.Decrypt(decrypted_entry, encrypted_matrix(i, j));
       EXPECT_EQ(ptxt_db(i, j), decrypted_entry);
     }
   }
 }
 
-TEST(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
-  // clang-format off
-  helib::Context context = helib::ContextBuilder<helib::BGV>()
-                               .m(24)
-                               .p(37)
-                               .r(1)
-                               .bits(100)
-                               .build();
-  // clang-format on
-  helib::SecKey sk(context);
-  sk.GenSecKey();
-  addSome1DMatrices(sk);
-  helib::PubKey& pk = sk;
-
+TEST_P(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -158,17 +184,17 @@ TEST(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
   ptxt_db(0, 1) = p3;
   ptxt_db(1, 1) = p4;
 
-  helib::Ctxt c1(pk);
-  helib::Ctxt c2(pk);
-  helib::Ctxt c3(pk);
-  helib::Ctxt c4(pk);
+  helib::Ctxt c1(publicKey);
+  helib::Ctxt c2(publicKey);
+  helib::Ctxt c3(publicKey);
+  helib::Ctxt c4(publicKey);
 
-  pk.Encrypt(c1, p1);
-  pk.Encrypt(c2, p2);
-  pk.Encrypt(c3, p3);
-  pk.Encrypt(c4, p4);
+  publicKey.Encrypt(c1, p1);
+  publicKey.Encrypt(c2, p2);
+  publicKey.Encrypt(c3, p3);
+  publicKey.Encrypt(c4, p4);
 
-  helib::Ctxt zero_ctxt(pk);
+  helib::Ctxt zero_ctxt(publicKey);
   helib::Matrix<helib::Ctxt> encrypted_db(zero_ctxt, 2, 2);
   encrypted_db(0, 0) = c1;
   encrypted_db(1, 0) = c2;
@@ -187,21 +213,26 @@ TEST(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
   auto deserialized_ctxt_db =
-      readDbFromFile<helib::Ctxt>(ctxtFile, contextp, pk);
+      readDbFromFile<helib::Ctxt>(ctxtFile, contextp, publicKey);
   auto encrypted_matrix = deserialized_ctxt_db.getData();
   std::remove(ctxtFile.c_str());  // Remove file
 
-  auto deserialized_ptxt_db = readDbFromFile<Ptxt>(ptxtFile, contextp, pk);
+  auto deserialized_ptxt_db = readDbFromFile<Ptxt>(ptxtFile, contextp, publicKey);
   auto ptxt_matrix = deserialized_ptxt_db.getData();
   std::remove(ptxtFile.c_str());  // Remove file
 
   for (std::size_t i = 0; i < encrypted_db.dims(0); ++i) {
     for (std::size_t j = 0; j < encrypted_db.dims(1); ++j) {
       Ptxt decrypted_entry(context);
-      sk.Decrypt(decrypted_entry, encrypted_matrix(i, j));
+      secretKey.Decrypt(decrypted_entry, encrypted_matrix(i, j));
       EXPECT_EQ(ptxt_matrix(i, j), decrypted_entry);
     }
   }
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    variousParameters,
+    TestIO,
+    ::testing::Values(BGVParameters(24, 37, 1, 100)));
 
 }  // namespace
