@@ -15,10 +15,7 @@ using Ptxt = helib::Ptxt<helib::BGV>;
 
 struct BGVParameters
 {
-  BGVParameters(unsigned m,
-                unsigned p,
-                unsigned r,
-                unsigned bits) :
+  BGVParameters(unsigned m, unsigned p, unsigned r, unsigned bits) :
       m(m), p(p), r(r), bits(bits){};
 
   const unsigned m;
@@ -77,7 +74,8 @@ protected:
   virtual ~TestIO() = default;
 };
 
-TEST_P(TestIO, readerThrowsForNonVectorPtxtQuery) {
+TEST_P(TestIO, readerThrowsForNonVectorPtxtQuery)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -102,11 +100,13 @@ TEST_P(TestIO, readerThrowsForNonVectorPtxtQuery) {
   ss << context;
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
-  EXPECT_THROW(readQueryFromFile<Ptxt>(ptxtFile, publicKey), std::runtime_error);
+  EXPECT_THROW(readQueryFromFile<Ptxt>(ptxtFile, publicKey),
+               std::runtime_error);
   std::remove(ptxtFile.c_str());
 }
 
-TEST_P(TestIO, readerThrowsForNonVectorCtxtQuery) {
+TEST_P(TestIO, readerThrowsForNonVectorCtxtQuery)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -147,11 +147,13 @@ TEST_P(TestIO, readerThrowsForNonVectorCtxtQuery) {
   ss << context;
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
-  EXPECT_THROW(readQueryFromFile<Ptxt>(ctxtFile, publicKey), std::runtime_error);
+  EXPECT_THROW(readQueryFromFile<Ptxt>(ctxtFile, publicKey),
+               std::runtime_error);
   std::remove(ctxtFile.c_str());
 }
 
-TEST_P(TestIO, readingPtxtQueryWorksCorrectly) {
+TEST_P(TestIO, readingPtxtQueryWorksCorrectly)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -192,7 +194,8 @@ TEST_P(TestIO, readingPtxtQueryWorksCorrectly) {
   }
 }
 
-TEST_P(TestIO, readingCtxtQueryWorksCorrectly) {
+TEST_P(TestIO, readingCtxtQueryWorksCorrectly)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -234,7 +237,7 @@ TEST_P(TestIO, readingCtxtQueryWorksCorrectly) {
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
   auto deserialized_query = readQueryFromFile<helib::Ctxt>(ctxtFile, publicKey);
-  std::remove(ctxtFile.c_str());  // Remove file
+  std::remove(ctxtFile.c_str()); // Remove file
 
   // Check dimensions
   EXPECT_EQ(encrypted_query.size(), deserialized_query.size());
@@ -251,7 +254,8 @@ TEST_P(TestIO, readingCtxtQueryWorksCorrectly) {
   }
 }
 
-TEST_P(TestIO, readingPtxtDBWorksCorrectly) {
+TEST_P(TestIO, readingPtxtDBWorksCorrectly)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -284,7 +288,7 @@ TEST_P(TestIO, readingPtxtDBWorksCorrectly) {
   EXPECT_EQ(ptxt_db.size(), ptxt_matrix.size());
   EXPECT_EQ(ptxt_db.dims(0), ptxt_matrix.dims(0));
   EXPECT_EQ(ptxt_db.dims(1), ptxt_matrix.dims(1));
-  
+
   // Check elements
   for (std::size_t i = 0; i < ptxt_matrix.dims(0); ++i) {
     for (std::size_t j = 0; j < ptxt_matrix.dims(1); ++j) {
@@ -293,7 +297,8 @@ TEST_P(TestIO, readingPtxtDBWorksCorrectly) {
   }
 }
 
-TEST_P(TestIO, readingCtxtDBWorksCorrectly) {
+TEST_P(TestIO, readingCtxtDBWorksCorrectly)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -334,15 +339,16 @@ TEST_P(TestIO, readingCtxtDBWorksCorrectly) {
   ss << context;
   std::shared_ptr<helib::Context> contextp(helib::Context::readPtrFromJSON(ss));
 
-  auto deserialized_db = readDbFromFile<helib::Ctxt>(ctxtFile, contextp, publicKey);
+  auto deserialized_db =
+      readDbFromFile<helib::Ctxt>(ctxtFile, contextp, publicKey);
   auto encrypted_matrix = deserialized_db.getData();
-  std::remove(ctxtFile.c_str());  // Remove file
+  std::remove(ctxtFile.c_str()); // Remove file
 
   // Check dimensions
   EXPECT_EQ(encrypted_db.size(), encrypted_matrix.size());
   EXPECT_EQ(encrypted_db.dims(0), encrypted_matrix.dims(0));
   EXPECT_EQ(encrypted_db.dims(1), encrypted_matrix.dims(1));
-  
+
   // Check elements
   for (std::size_t i = 0; i < encrypted_db.dims(0); ++i) {
     for (std::size_t j = 0; j < encrypted_db.dims(1); ++j) {
@@ -353,7 +359,8 @@ TEST_P(TestIO, readingCtxtDBWorksCorrectly) {
   }
 }
 
-TEST_P(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
+TEST_P(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization)
+{
   std::vector<long> d1 = {1, 2, 3, 4};
   std::vector<long> d2 = {5, 6, 7, 8};
   std::vector<long> d3 = {9, 10, 11, 12};
@@ -401,11 +408,12 @@ TEST_P(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
   auto deserialized_ctxt_db =
       readDbFromFile<helib::Ctxt>(ctxtFile, contextp, publicKey);
   auto encrypted_matrix = deserialized_ctxt_db.getData();
-  std::remove(ctxtFile.c_str());  // Remove file
+  std::remove(ctxtFile.c_str()); // Remove file
 
-  auto deserialized_ptxt_db = readDbFromFile<Ptxt>(ptxtFile, contextp, publicKey);
+  auto deserialized_ptxt_db =
+      readDbFromFile<Ptxt>(ptxtFile, contextp, publicKey);
   auto ptxt_matrix = deserialized_ptxt_db.getData();
-  std::remove(ptxtFile.c_str());  // Remove file
+  std::remove(ptxtFile.c_str()); // Remove file
 
   // Check dimensions
   EXPECT_EQ(ptxt_matrix.size(), encrypted_matrix.size());
@@ -422,9 +430,8 @@ TEST_P(TestIO, ctxtDBDeserializationAgreesWithPtxtDeserialization) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    variousParameters,
-    TestIO,
-    ::testing::Values(BGVParameters(24, 37, 1, 100)));
+INSTANTIATE_TEST_SUITE_P(variousParameters,
+                         TestIO,
+                         ::testing::Values(BGVParameters(24, 37, 1, 100)));
 
-}  // namespace
+} // namespace

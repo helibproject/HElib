@@ -40,7 +40,8 @@ using Ptxt = helib::Ptxt<helib::BGV>;
 template <typename TXT>
 helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
                                     const sharedContext& contextp,
-                                    const helib::PubKey& pk) {
+                                    const helib::PubKey& pk)
+{
   // Read in TXT file header
   std::ifstream databaseFile(databaseFilePath);
   if (!databaseFile.is_open()) {
@@ -60,7 +61,7 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
   }
 
   helib::Matrix<TXT> data(zero_txt, nrow, ncol);
-  
+
   if constexpr (std::is_same_v<TXT, Ptxt>) { // Ptxt query
     // Read in ptxts
     std::vector<std::string> ptxt_strings(nrow * ncol);
@@ -87,7 +88,8 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
 
 template <typename TXT>
 helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
-                                     const helib::PubKey& pk) {
+                                     const helib::PubKey& pk)
+{
   // Read in TXT file header
   std::ifstream queryFile(queryFilePath);
   if (!queryFile.is_open()) {
@@ -131,7 +133,7 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
         reader.value().readDatum(query(i, j), i, j);
       }
     }
-    if (ncol == 1) {  // Transpose to make row vector
+    if (ncol == 1) { // Transpose to make row vector
       query.transpose();
     }
   }
@@ -143,8 +145,9 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
 template <typename TXT>
 inline void writeResultsToFile(const std::string& outFilePath,
                                const helib::Matrix<TXT>& results,
-                               const long offset = 0) {
-  if constexpr (std::is_same_v<TXT, Ptxt>) {  // BGV Ptxt results
+                               const long offset = 0)
+{
+  if constexpr (std::is_same_v<TXT, Ptxt>) { // BGV Ptxt results
     // Open file
     std::ofstream outFile(outFilePath);
     if (!outFile.is_open()) {
@@ -168,8 +171,10 @@ inline void writeResultsToFile(const std::string& outFilePath,
         outFile << results(i, j) << std::endl;
       }
     }
-  } else {  // Ctxt results
-    Writer<TXT> writer(outFilePath, results.dims(0), results.dims(1),
+  } else { // Ctxt results
+    Writer<TXT> writer(outFilePath,
+                       results.dims(0),
+                       results.dims(1),
                        estimateCtxtSize(results(0, 0).getContext(), offset));
 
     // Write the data
@@ -184,4 +189,4 @@ inline void writeResultsToFile(const std::string& outFilePath,
   }
 }
 
-#endif  // IO_H_
+#endif // IO_H_
