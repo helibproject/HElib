@@ -17,8 +17,8 @@
  * work with Ptxt objects.
  */
 
-#ifndef POCIO_H_
-#define POCIO_H_
+#ifndef IO_H_
+#define IO_H_
 
 #include <helib/Matrix.h>
 #include <helib/helib.h>
@@ -49,7 +49,6 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
 
   TXT zero_txt(pk);
   // This is only needed for TXT = Ctxt
-  // Reader<TXT> reader(databaseFilePath, zero_txt);
   std::optional<Reader<TXT>> reader;
   long nrow, ncol;
   if constexpr (std::is_same_v<TXT, Ptxt>) {
@@ -62,30 +61,20 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
 
   helib::Matrix<TXT> data(zero_txt, nrow, ncol);
   
-  if constexpr (std::is_same_v<TXT, Ptxt>) {
-    // read in ptxts
+  if constexpr (std::is_same_v<TXT, Ptxt>) { // Ptxt query
+    // Read in ptxts
     std::vector<std::string> ptxt_strings(nrow * ncol);
     for (std::size_t i = 0; i < ptxt_strings.size(); ++i) {
       std::getline(databaseFile, ptxt_strings[i], '\n');
     }
-
     // Populate Matrix
-    // What is the point of this first loop?
-    // What is a column vector DB?
-    if (ncol == 1) {  // Column vector
-      for (long i = 0; i < ptxt_strings.size(); ++i) {
-        std::istringstream iss(ptxt_strings[i]);
-        iss >> data(i, 0);
-      }
-    } else {
-      for (long i = 0; i < nrow; ++i) {
-        for (long j = 0; j < ncol; ++j) {
-          std::istringstream iss(ptxt_strings[(i * ncol) + j]);
-          iss >> data(i, j);
-        }
+    for (long i = 0; i < nrow; ++i) {
+      for (long j = 0; j < ncol; ++j) {
+        std::istringstream iss(ptxt_strings[(i * ncol) + j]);
+        iss >> data(i, j);
       }
     }
-  } else {
+  } else { // Ctxt query
     for (long i = 0; i < nrow; ++i) {
       for (long j = 0; j < ncol; ++j) {
         reader.value().readDatum(data(i, j), i, j);
@@ -113,8 +102,8 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
     std::tie(nrow, ncol) = parseDimsHeader(readline(queryFile));
   } else { // Ctxt query
     reader.emplace(Reader<helib::Ctxt>(queryFilePath, zero_txt));
-    nrow = reader.getTOC().getRows();
-    ncol = reader.getTOC().getCols();
+    nrow = reader.value().getTOC().getRows();
+    ncol = reader.value().getTOC().getCols();
   }
 
   if (nrow != 1 && ncol != 1) {
@@ -139,7 +128,7 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
     // Read in ctxts
     for (long i = 0; i < nrow; ++i) {
       for (long j = 0; j < ncol; ++j) {
-        reader.readDatum(query(i, j), i, i);
+        reader.value().readDatum(query(i, j), i, j);
       }
     }
     if (ncol == 1) {  // Transpose to make row vector
@@ -195,4 +184,4 @@ inline void writeResultsToFile(const std::string& outFilePath,
   }
 }
 
-#endif  // POCIO_H_
+#endif  // IO_H_
