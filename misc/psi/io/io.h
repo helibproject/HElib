@@ -65,8 +65,8 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
   if constexpr (std::is_same_v<TXT, Ptxt>) { // Ptxt query
     // Read in ptxts
     std::vector<std::string> ptxt_strings(nrow * ncol);
-    for (std::size_t i = 0; i < ptxt_strings.size(); ++i) {
-      std::getline(databaseFile, ptxt_strings[i], '\n');
+    for (auto& ptxt : ptxt_strings) {
+      std::getline(databaseFile, ptxt, '\n');
     }
     // Populate Matrix
     for (long i = 0; i < nrow; ++i) {
@@ -114,12 +114,12 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
 
   helib::Matrix<TXT> query(zero_txt, nrow, ncol);
 
-  // FIXME: Always builds query as a row vector
+  // NOTE: Always builds query as a row vector
   if constexpr (std::is_same_v<TXT, Ptxt>) { // Ptxt query
     // Read in ptxts
     std::vector<std::string> ptxt_strings(nrow * ncol);
-    for (std::size_t i = 0; i < ptxt_strings.size(); ++i) {
-      std::getline(queryFile, ptxt_strings[i], '\n');
+    for (auto& ptxt : ptxt_strings) {
+      std::getline(queryFile, ptxt, '\n');
     }
     // Populate Matrix
     for (long i = 0; i < ptxt_strings.size(); ++i) {
