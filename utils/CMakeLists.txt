@@ -40,6 +40,5 @@ find_package(helib "${HELIB_VERSION}" EXACT REQUIRED)
 
 add_subdirectory(create-context)
 add_subdirectory(crypto)
-add_subdirectory(IO)
 
 add_subdirectory(test_bootstrapping)
