@@ -17,6 +17,7 @@
 #include <helib/timing.h>
 #include <helib/EncryptedArray.h>
 #include <helib/Ptxt.h>
+#include <NTL/BasicThreadPool.h>
 
 #include <cstdio>
 
@@ -31,27 +32,47 @@ namespace helib {
 
 void mapTo01(const EncryptedArray& ea, Ctxt& ctxt)
 {
-// Compute of the "norm" y * y^p * ... * y^{p^{d-1}}
-//  using O(log d) automorphisms, rather than O(d).
+
   long p = ctxt.getPtxtSpace();
   if (p != ea.getPAlgebra().getP()) // ptxt space is p^r for r>1
     throw LogicError("mapTo01 not implemented for r>1");
 
   if (p > 2)
     ctxt.power(p - 1); // set y = x^{p-1}
-  long e = 1;
-  long d = ea.getDegree();
-  long b = NTL::NumBits(d);
-  Ctxt orig = ctxt;
-  for(long i = b - 2; i >= 0; i--){
-    Ctxt tmp = ctxt;
-    tmp.frobeniusAutomorph(e);
-    ctxt *= tmp;
-    e *= 2;
-    if(NTL::bit(d,i)){
-      ctxt.frobeniusAutomorph(1);
-      ctxt *= orig;
-       e+= 1;
+
+  // TODO: investigate this trade off more thoroughly
+  // Computing in parallel over t threads has runtime approximately
+  // (d - 1)/t, whereas single thread has runtime approx log(d)
+  if (NTL::AvailableThreads() > 1) {
+    // Compute O(d) Frobenius automorphisms in parallel
+    long d = ea.getDegree();
+    if (d > 1) {
+      // compute the d - 1 automorphisms in parallel
+      std::vector<Ctxt> v(d, ctxt);
+      NTL_EXEC_RANGE(d - 1, first, last)
+      for (long i = first; i < last; i++)
+        v[i + 1].frobeniusAutomorph(i + 1);
+      NTL_EXEC_RANGE_END
+      // and compute the product of the d automorphisms
+      totalProduct(ctxt, v);
+    }
+  } else {
+    // Compute of the "norm" y * y^p * ... * y^{p^{d-1}}
+    //  using O(log d) automorphisms, rather than O(d).
+    long e = 1;
+    long d = ea.getDegree();
+    long b = NTL::NumBits(d);
+    Ctxt orig = ctxt;
+    for (long i = b - 2; i >= 0; i--) {
+      Ctxt tmp = ctxt;
+      tmp.frobeniusAutomorph(e);
+      ctxt *= tmp;
+      e *= 2;
+      if (NTL::bit(d, i)) {
+        ctxt.frobeniusAutomorph(1);
+        ctxt *= orig;
+        e += 1;
+      }
     }
   }
 }
