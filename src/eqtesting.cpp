@@ -71,7 +71,7 @@ void mapTo01(const EncryptedArray& ea, Ctxt& ctxt)
       if (NTL::bit(d, i)) {
         ctxt.frobeniusAutomorph(1);
         ctxt *= orig;
-        e += 1;
+        e++;
       }
     }
   }
