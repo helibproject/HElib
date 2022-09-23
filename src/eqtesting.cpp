@@ -30,22 +30,20 @@ namespace helib {
 // and then outputting y * y^p * ... * y^{p^{d-1}}, with exponentiation to
 // powers of p done via Frobenius.
 
-void mapTo01(const EncryptedArray& ea, Ctxt& ctxt)
+void mapTo01(const EncryptedArray& ea, Ctxt& ctxt, bool multithread)
 {
-
   long p = ctxt.getPtxtSpace();
   if (p != ea.getPAlgebra().getP()) // ptxt space is p^r for r>1
     throw LogicError("mapTo01 not implemented for r>1");
 
   if (p > 2)
     ctxt.power(p - 1); // set y = x^{p-1}
-
+  long d = ea.getDegree();
   // TODO: investigate this trade off more thoroughly
   // Computing in parallel over t threads has runtime approximately
   // (d - 1)/t, whereas single thread has runtime approx log(d)
-  if (NTL::AvailableThreads() > 1) {
-    // Compute O(d) Frobenius automorphisms in parallel
-    long d = ea.getDegree();
+  if ((NTL::AvailableThreads() > 1) && multithread) {
+    // Compute O(d) Frobenius automorphisms in parallel    
     if (d > 1) {
       // compute the d - 1 automorphisms in parallel
       std::vector<Ctxt> v(d, ctxt);
@@ -60,7 +58,6 @@ void mapTo01(const EncryptedArray& ea, Ctxt& ctxt)
     // Compute of the "norm" y * y^p * ... * y^{p^{d-1}}
     //  using O(log d) automorphisms, rather than O(d).
     long e = 1;
-    long d = ea.getDegree();
     long b = NTL::NumBits(d);
     Ctxt orig = ctxt;
     for (long i = b - 2; i >= 0; i--) {
