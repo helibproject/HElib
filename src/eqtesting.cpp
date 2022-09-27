@@ -20,7 +20,7 @@
  *     added parallelism to existing logic for norm calculation
  *     added alternative logic for norm calculation which uses log(d) 
  *     automorphisms on a single core
- *     added an additional optional argument multithread which determines 
+ *     added an additional optional argument `multithread` which determines 
  *     which version to run
  *      
  */
