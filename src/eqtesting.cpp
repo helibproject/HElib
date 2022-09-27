@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Modifying HElib to optimize the 01 map.
- * Contributions include *
+ * Contributions include
  * Modified:
  *   mapTo01
  *     added parallelism to existing logic for norm calculation
