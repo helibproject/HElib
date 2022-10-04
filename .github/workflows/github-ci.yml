@@ -34,6 +34,7 @@ jobs:
       run:
         shell: bash
     strategy:
+      fail-fast: false
       matrix:
         # TODO: shared builds
         package_build: [ON, OFF]
@@ -56,6 +57,10 @@ jobs:
             os: macos-latest
     steps:
       - uses: actions/checkout@v2
+      - name: System Check
+        run: |
+          clang --version
+          gcc -v
       - run: |
           set -x
           env
