@@ -1839,7 +1839,8 @@ void SecKey::writeOnlySecKeyToJSON(std::ostream& str) const
 JsonWrapper SecKey::writeOnlySecKeyToJSON() const
 {
   auto body = [this]() {
-    json j = {{"sKeys", writeVectorToJSON(this->sKeys)}};
+    json j = {{"context", unwrap(this->getContext().writeToJSON())},
+              {"sKeys", writeVectorToJSON(this->sKeys)}};
     return wrap(toTypedJson<SecKey>(j));
   };
   return executeRedirectJsonError<JsonWrapper>(body);
@@ -1877,6 +1878,8 @@ void SecKey::readOnlySecKeyJSON(const JsonWrapper& tjw)
 {
   executeRedirectJsonError<void>([&]() {
     json j = fromTypedJson<SecKey>(unwrap(tjw));
+    Context ser_context = Context::readFromJSON(wrap(j.at("context")));
+    assertEq(context, ser_context, "Context mismatch");
     this->clear();
 
     this->sKeys = readVectorFromJSON<DoubleCRT>(j.at("sKeys"), context);
