@@ -90,7 +90,6 @@ int main(int argc, char** argv)
     std::cout << "ctxt.bitCapacity: " << ctxt.bitCapacity() << std::endl;
   }
 
-  int round = 0;
   for (std::size_t round = 0; round < 2; ++round) {
     if (!quiet) {
       std::cout << "Round: " << round << std::endl;
