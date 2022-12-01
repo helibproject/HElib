@@ -701,6 +701,24 @@ TEST_P(TestIO_BGV, readKeysFromDeserializeCorrectly)
   EXPECT_EQ(secretKey, deserialized_sk);
 }
 
+TEST_P(TestIO_BGV, secretKeyOnlyThrowsOnMismatchContext)
+{
+  std::stringstream str;
+  secretKey.writeOnlySecKeyToJSON(str);
+  helib::Context new_context(helib::ContextBuilder<helib::BGV>()
+                                 .m(41)
+                                 .p(p)
+                                 .r(r)
+                                 .bits(bits)
+                                 .gens(gens)
+                                 .ords(ords)
+                                 .mvec(mvec)
+                                 .build());
+  helib::SecKey deserialized_sk(new_context);
+  EXPECT_THROW(deserialized_sk.readOnlySecKeyFromJSON(str, new_context),
+               helib::LogicError);
+}
+
 TEST_P(TestIO_BGV, handlingPublicKeyDeserializationWithMissingField)
 {
   std::stringstream ss;
@@ -1515,6 +1533,20 @@ TEST_P(TestIO_CKKS, readKeysFromDeserializeCorrectly)
   helib::SecKey deserialized_sk = helib::SecKey::readFromJSON(ss, context);
 
   EXPECT_EQ(secretKey, deserialized_sk);
+}
+
+TEST_P(TestIO_CKKS, secretKeyOnlyThrowsOnMismatchContext)
+{
+  std::stringstream str;
+  secretKey.writeOnlySecKeyToJSON(str);
+  helib::Context new_context(helib::ContextBuilder<helib::CKKS>()
+                                 .m(32)
+                                 .precision(precision)
+                                 .bits(bits)
+                                 .build());
+  helib::SecKey deserialized_sk(new_context);
+  EXPECT_THROW(deserialized_sk.readOnlySecKeyFromJSON(str, new_context),
+               helib::LogicError);
 }
 
 TEST_P(TestIO_CKKS, handlingPublicKeyDeserializationWithMissingField)
