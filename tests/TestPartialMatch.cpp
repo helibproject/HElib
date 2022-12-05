@@ -20,6 +20,8 @@
  *   TEST_P(TestPartialMatch, databaseLookupContainsOnStringsPtxtMatchesCtxt)
  *   TEST_P(TestPartialMatch, databaseLookupWorksWithQueryAPIWithNot)
  *   TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyWithNot)
+ *   TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyForStrings)
+ *
  */
 
 #include <bitset>
@@ -679,10 +681,9 @@ TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyForStrings)
   expected_result[11] = 0; // Only c4 matches          -> q = false
 
   EXPECT_EQ(result.dims(1), 1l);
+  EXPECT_EQ(result.dims(0), 2l);
   for (size_t i = 0; i < result.dims(0); ++i)
-    for (size_t j = 0; j < result.dims(1); ++j) {
-      EXPECT_EQ(result(i, j), expected_result);
-    }
+    EXPECT_EQ(result(i, 0), expected_result);
 }
 
 TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyWithNot)

@@ -247,10 +247,9 @@ public:
    * `Ptxt<BGV>`.
    * @param lookup_query The lookup query expression to perform.
    * @param query_data The lookup query data to compare with the database.
-   * TODO: will only return TXT2 if database is not "more encrypted" that query
-   *data?
-   * @return A `Matrix<TXT2>` containing 1s and 0s in slots where there was a
-   * match or no match respectively.
+   * @return A `Matrix<TXT>` containing 1s and 0s in slots where there was a
+   * match or no match respectively. The return type `TXT` is `Ctxt` if either
+   * query of database is encrypted, and `Ptxt<BGV>` otherwise.
    **/
   template <typename TXT2>
   auto contains(const QueryType& lookup_query,
@@ -261,12 +260,12 @@ public:
    *  string and query data.
    * @tparam TXT2 The type of the query data, can be either a `Ctxt` or
    * `Ptxt<BGV>`.
-   * @param lookup_query A query string in Reverse Polish Notation with only `ANDs` and `NOTs`.
+   * @param lookup_query A query string in Reverse Polish Notation with only
+   *`ANDs` and `NOTs`.
    * @param query_data The lookup query data to compare with the database.
-   * TODO: will only return TXT2 if database is not "more encrypted" that query
-   *data?
-   * @return A `Matrix<TXT2>` containing 1s and 0s in slots where there was a
-   * match or no match respectively.
+   * @return A `Matrix<TXT>` containing 1s and 0s in slots where there was a
+   * match or no match respectively. The return type `TXT` is `Ctxt` if either
+   * query of database is encrypted, and `Ptxt<BGV>` otherwise.
    **/
   template <typename TXT2>
   auto contains(const std::string& query_string,
@@ -279,7 +278,9 @@ public:
    * `Ptxt<BGV>`.
    * @param weighted_query The weighted lookup query expression to perform.
    * @param query_data The query data to compare with the database.
-   * @return A `Matrix<TXT2>` containing a score on weighted matches.
+   * @return A `Matrix<TXT>` containing a score on weighted matches. The return
+   * type `TXT` is `Ctxt` if either query of database is encrypted, and
+   * `Ptxt<BGV>` otherwise.
    **/
   template <typename TXT2>
   auto getScore(const QueryType& weighted_query,
@@ -314,19 +315,19 @@ inline auto Database<TXT>::contains(const std::string& query_string,
 
   std::istringstream input(query_string);
 
-  std::stack<Matrix<RTXT>> ctxtStack;
+  std::stack<Matrix<RTXT>> txtStack;
   std::string symbol;
 
   while (input >> symbol) {
     if (symbol == "!") {
-      auto& top = ctxtStack.top();
+      auto& top = txtStack.top();
       top.apply([&](auto& entry) { entry.negate(); });
       top.apply([&](auto& entry) { entry.addConstant(NTL::ZZX(1L)); });
     } else if (symbol == "&&") {
-      auto rhs = ctxtStack.top();
-      ctxtStack.pop();
-      
-      auto& lhs = ctxtStack.top();
+      auto rhs = txtStack.top();
+      txtStack.pop();
+
+      auto& lhs = txtStack.top();
       lhs.template entrywiseOperation<RTXT>(
           rhs,
           [](auto& l, const auto& r) -> decltype(auto) {
@@ -352,13 +353,13 @@ inline auto Database<TXT>::contains(const std::string& query_string,
       Matrix<RTXT> col(ones, mask.dims(0), 1l);
       // now add the entries we want to the RHS
       col += mask.getColumn(std::stol(symbol));
-      ctxtStack.push(col);
+      txtStack.push(col);
     }
   }
   assertEq<LogicError>(1UL,
-                       ctxtStack.size(),
+                       txtStack.size(),
                        "Size of stack after evaluation should be 1");
-  return std::move(ctxtStack.top());
+  return std::move(txtStack.top());
 }
 
 template <typename TXT>
