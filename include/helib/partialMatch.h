@@ -261,7 +261,7 @@ public:
    *  string and query data.
    * @tparam TXT2 The type of the query data, can be either a `Ctxt` or
    * `Ptxt<BGV>`.
-   * @param lookup_query A query string in RPN with only ANDs and NOTs
+   * @param lookup_query A query string in Reverse Polish Notation with only `ANDs` and `NOTs`.
    * @param query_data The lookup query data to compare with the database.
    * TODO: will only return TXT2 if database is not "more encrypted" that query
    *data?

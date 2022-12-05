@@ -540,12 +540,12 @@ private:
   }
 
   /**
-   * @brief Take a string in Reverse Polish Notation and produce a
+   * @brief Take a string in Reverse Polish Notation (RPN) and produce a
    * vector of vectors representing a logically equivalent `AND` of `OR`s.
-   * @param s String in RPN, operators given by `&&`, `||` or `!`
+   * @param s String in RPN, operators given by `&&`, `||` or `!`.
    * @return A `vecvec` representing a logically equivalent conjunction of
-   * disjunctions of either columns or their negations. (i + 1) corresponds to
-   * column i, and negatives correspond to negations of columns.
+   * disjunctions of either columns or their negations. `(i + 1)` corresponds to
+   * column `i`, and negatives correspond to negations of columns.
    */
   vecvec expandOr(const std::string& s) const
   {
@@ -604,12 +604,12 @@ private:
   }
 
   /**
-   * @brief Given a `vecvec` where outer clauses correspond to ANDs and inner
-   * clauses correspond to ORs, deletes duplicated columns from inner clauses
-   * (i.e., i OR i), deletes a column and it's negation when both appear in an
-   * inner clause (i.e., i OR NOT i), and lastly deletes empty clauses.
+   * @brief Given a `vecvec` where outer clauses correspond to `AND`s and inner
+   * clauses correspond to `OR`s, deletes duplicated columns from inner clauses
+   * (i.e., `i OR i`), deletes a column and its negation when both appear in an
+   * inner clause (i.e., `i OR NOT i`), and lastly deletes empty clauses.
    * @param expr A `vecvec` corresponding to an `AND` of `OR`s.
-   * @return vecvec corresponding to a logically equivalent `AND` of `OR`s.
+   * @return A `vecvec` corresponding to a logically equivalent `AND` of `OR`s.
    */
   vecvec tidy(const vecvec& expr) const
   {
@@ -625,7 +625,7 @@ private:
   /**
    * @brief Build the weights for a query given as an `AND` of `OR`s.
    * @param expr Inner groups correspond to `OR`s, and we take the `AND` across
-   * all inner groups. (i + 1) corresponds to column i, and negatives to
+   * all inner groups. `(i + 1)` corresponds to column `i`, and negatives to
    * negations.
    * @param columns The number of columns in the database.
    * @return `QueryType` with the correct weights.
@@ -679,9 +679,9 @@ private:
    * `vecvec` corresponding to the negation. Called by `expandOr()`.
    *
    * @param clause A `vecvec` of column numbers and negations of column numbers,
-   * with (i+1) corresponding to column i.
-   * @return vecvec A `vecvec` of column numbers and negations of column
-   * numbers, with (i+1) corresponding to column i.
+   * with `(i+1)` corresponding to column `i`.
+   * @return A `vecvec` of column numbers and negations of column
+   * numbers, with `(i+1)` corresponding to column `i`.
    */
   vecvec negate(const vecvec& clause) const
   {
@@ -710,12 +710,12 @@ private:
 
   /**
    * @brief Tidies an inner clause by deleting duplicate columns and
-   * removing columns for which both the column and it's negation appear. Called
-   * by Tidy()
+   * removing columns for which both the column and its negation appear. Called
+   * by `Tidy()`.
    * @param clause A vector of column labels and negative column labels,
-   * interpreted as an `OR` clause, where (i+1) corresponds to column i, and
+   * interpreted as an `OR` clause, where `(i+1)` corresponds to column `i`, and
    * negatives correspond to negations.
-   * @return std::vector<long> a list of unique column labels.
+   * @return A `std::vector<long>` of unique column labels.
    */
   std::vector<long> tidyClause(const std::vector<long>& clause) const
   {
