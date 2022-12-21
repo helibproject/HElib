@@ -19,13 +19,13 @@ TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversion)
       helib::QueryBuilder("( a AND b ) OR c"),
       helib::QueryBuilder("( a AND b ) OR ( c AND d )"),
       helib::QueryBuilder("( a AND b ) OR ( ( c AND d ) AND ( e OR f ) )"),
-      /* test spaces, order of precedence, triple char operands */
+      // test spaces, order of precedence, triple char operands
       helib::QueryBuilder("a AND b AND c"),
       helib::QueryBuilder("( a OR b AND c )"),
       helib::QueryBuilder("a AND b OR c"),
       helib::QueryBuilder("aaa OR bbc OR ac"),
       helib::QueryBuilder("( a AND b ) OR ( c AND d ) AND ( e OR f )"),
-      /* test brackets */
+      // test brackets
       helib::QueryBuilder("(a AND b) OR (c AND d)"),
       helib::QueryBuilder("(a AND (b AND (c AND d)))")};
   std::array<std::string, 14> expected{"a b &&",
@@ -42,6 +42,32 @@ TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversion)
                                        "a b && c d && e f || && ||",
                                        "a b && c d && ||",
                                        "a b c d && && &&"};
+
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = " << i;
+  }
+}
+
+TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversionWithNot)
+{
+  std::array<helib::QueryBuilder, 8> input_exprs{
+      helib::QueryBuilder("NOT a AND b"),
+      helib::QueryBuilder("a OR NOT b"),
+      helib::QueryBuilder("NOT ( b OR c )"),
+      helib::QueryBuilder("NOT NOT a AND ( b OR c )"),
+      helib::QueryBuilder("(NOT a AND NOT b ) OR c"),
+      helib::QueryBuilder("( a AND b ) OR NOT NOT( c AND d )"),
+      helib::QueryBuilder("( a AND b ) OR ( ( c AND d ) AND ( e OR NOT f ) )"),
+      // test spaces, order of precedence, triple char operands
+      helib::QueryBuilder("NOT a AND NOT b AND NOT c")};
+  std::array<std::string, 8> expected{"a ! b &&",
+                                       "a b ! ||",
+                                       "b c || !",
+                                       "a ! ! b c || &&",
+                                       "a ! b ! && c ||",
+                                       "a b && c d && ! ! ||",
+                                       "a b && c d && e f ! || && ||",
+                                       "a ! b ! && c ! &&"};
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = " << i;
@@ -74,6 +100,18 @@ TEST(TestQuery, ExpectedThrowsInfixToPostFixNotation)
   EXPECT_THROW(helib::QueryBuilder("AND a AND b"), helib::LogicError);
   // throws because expression ends with OR
   EXPECT_THROW(helib::QueryBuilder("y OR "), helib::LogicError);
+}
+
+TEST(TestQuery, ExpectedThrowsInfixToPostFixNotationWithNot)
+{
+  // throws because A next to B
+  EXPECT_THROW(helib::QueryBuilder("NOT A B AND C"), helib::LogicError);
+  // throws because B next to NOT
+  EXPECT_THROW(helib::QueryBuilder("A OR B NOT C"), helib::LogicError);
+  // throws because NOT next to right bracket 
+  EXPECT_THROW(helib::QueryBuilder("(A OR B AND NOT)"), helib::LogicError);
+  // throws because query ends with not
+  EXPECT_THROW(helib::QueryBuilder("A OR B AND NOT"), helib::LogicError);
 }
 
 TEST(TestQuery, TableFromString1DColumns)

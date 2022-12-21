@@ -339,7 +339,8 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 
   /**
    * @brief Constructor.
@@ -354,7 +355,8 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
+  {
+  }
 };
 
 /**
@@ -446,7 +448,15 @@ public:
 
 private:
   std::string query_str;
-
+  void printCharStack(const std::stack<char> st){
+    std::stack<char> stcopy = st;
+    std::cout << "stack = ";
+    while(stcopy.size() != 0){
+      std::cout << stcopy.top() << ", ";
+      stcopy.pop();
+    }
+    std::cout << std::endl;
+  }
   /**
    * @brief Function that converts a space separated infix query with ANDs and
    * ORs to reverse polish notation.
@@ -457,25 +467,33 @@ private:
   {
     // checks for well formed query:
     // no consecutive arguments
-    std::regex consecArgs(R"(\b(?!(AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
+    std::regex consecArgs(R"(\b(?!(NOT|AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
-                "invalid query string, found consecutive arguments");
-    // No consecutive operators separated by spaces
+                 "invalid query string, found consecutive arguments");
+    //  No consecutive binary operators separated by spaces
     std::regex consecOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
     assertFalse(regex_search(s.begin(), s.end(), consecOps),
                 "invalid query string, found consecutive operators");
     // no empty brackets, no operators directly before right bracket,
-    // no operators directly after left bracket
-    std::regex bracketsAndOps(R"((\(\s*(AND|OR|\))\s+)|(\b(AND|OR)\s*\)))");
-    assertFalse(regex_search(s.begin(), s.end(), bracketsAndOps),
-                "invalid query, binary operator next to bracket of wrong type");
-    std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR)\s*$)");
+    // no binary operators directly after left bracket 
+    std::regex rightBracketsAndOps(R"(\b(AND|OR|NOT)\s*\))");
+    assertFalse(regex_search(s.begin(), s.end(), rightBracketsAndOps),
+                "invalid query, operator next to right bracket");
+    std::regex leftBracketsAndOps(R"(\(\s*(AND|OR)\s+)");
+    assertFalse(regex_search(s.begin(), s.end(), leftBracketsAndOps),
+                "invalid query, binary operator next to left bracket");
+    std::regex emptyBrackets(R"(\(\s*\))");
+    assertFalse(regex_search(s.begin(), s.end(), emptyBrackets),
+                "invalid query, query contains empty brackets");
+    // can't start with binary operator or end with operator
+    std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR|NOT)\s*$)");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
-                "invalid query, query starts or ends with an operator");
+                "invalid query, query starts with a binary operator or ends with an operator");
     // number of left brackets = number of right brackets
     assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
                          std::count(s.begin(), s.end(), ')'),
                          "invalid query, unbalanced brackets");
+
     std::string ret = "";
     std::stack<char> st;
 
@@ -489,6 +507,8 @@ private:
     while (input >> symbol) {
       if (symbol == "(") {
         st.push('(');
+      } else if (symbol == "NOT") {
+        st.push('!');
       } else if (symbol == "AND" || symbol == "OR") {
         if (st.top() == '&' || (symbol == "OR" && st.top() == '|')) {
           // cases where precedence has to be handled
@@ -504,10 +524,20 @@ private:
           st.pop();
         }
         st.pop(); // pop the "("
-      } else {    // operands
+        // handle case where bracketed clause is negated
+        while (st.size() != 0 && st.top() == '!') {
+          ret += " !";
+          st.pop();
+        }
+      } else { // operands
         if (ret.length() != 0)
           ret += " ";
         ret += symbol;
+        // handle case where symbol is negated
+        while (st.size() != 0 && st.top() == '!') {
+          ret += " !";
+          st.pop();
+        }
       }
     }
 
