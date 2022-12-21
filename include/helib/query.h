@@ -448,15 +448,7 @@ public:
 
 private:
   std::string query_str;
-  void printCharStack(const std::stack<char> st){
-    std::stack<char> stcopy = st;
-    std::cout << "stack = ";
-    while(stcopy.size() != 0){
-      std::cout << stcopy.top() << ", ";
-      stcopy.pop();
-    }
-    std::cout << std::endl;
-  }
+
   /**
    * @brief Function that converts a space separated infix query with ANDs and
    * ORs to reverse polish notation.
