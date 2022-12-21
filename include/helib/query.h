@@ -471,20 +471,25 @@ private:
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
                  "invalid query string, found consecutive arguments");
     //  No consecutive binary operators separated by spaces
-    std::regex consecOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
-    assertFalse(regex_search(s.begin(), s.end(), consecOps),
-                "invalid query string, found consecutive operators");
-    // no empty brackets, no operators directly before right bracket,
-    // no binary operators directly after left bracket 
-    std::regex rightBracketsAndOps(R"(\b(AND|OR|NOT)\s*\))");
-    assertFalse(regex_search(s.begin(), s.end(), rightBracketsAndOps),
-                "invalid query, operator next to right bracket");
-    std::regex leftBracketsAndOps(R"(\(\s*(AND|OR)\s+)");
-    assertFalse(regex_search(s.begin(), s.end(), leftBracketsAndOps),
-                "invalid query, binary operator next to left bracket");
+    std::regex consecBinOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
+    assertFalse(regex_search(s.begin(), s.end(), consecBinOps),
+                "invalid query string, found consecutive binary operators");
+    //  No binary operators immediately after NOT           
+    std::regex binOpAfterNot(R"(\b(NOT)+?\s+?(AND|OR)+?)");
+    assertFalse(regex_search(s.begin(), s.end(), binOpAfterNot),
+                "invalid query string, found binary operator after NOT");
+    // no empty brackets
     std::regex emptyBrackets(R"(\(\s*\))");
     assertFalse(regex_search(s.begin(), s.end(), emptyBrackets),
                 "invalid query, query contains empty brackets");
+    // no operators directly before right bracket            
+    std::regex rightBracketsAndOps(R"(\b(AND|OR|NOT)\s*\))");
+    assertFalse(regex_search(s.begin(), s.end(), rightBracketsAndOps),
+                "invalid query, operator next to right bracket");
+    // no binary operators directly after left bracket 
+    std::regex leftBracketsAndOps(R"(\(\s*(AND|OR)\s+)");
+    assertFalse(regex_search(s.begin(), s.end(), leftBracketsAndOps),
+                "invalid query, binary operator next to left bracket");    
     // can't start with binary operator or end with operator
     std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR|NOT)\s*$)");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),

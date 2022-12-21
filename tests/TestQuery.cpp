@@ -112,6 +112,9 @@ TEST(TestQuery, ExpectedThrowsInfixToPostFixNotationWithNot)
   EXPECT_THROW(helib::QueryBuilder("(A OR B AND NOT)"), helib::LogicError);
   // throws because query ends with not
   EXPECT_THROW(helib::QueryBuilder("A OR B AND NOT"), helib::LogicError);
+  // throws because NOT before AND
+  EXPECT_THROW(helib::QueryBuilder("NOT AND C"), helib::LogicError);
+
 }
 
 TEST(TestQuery, TableFromString1DColumns)
