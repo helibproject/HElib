@@ -10,6 +10,12 @@
  * limitations under the License. See accompanying LICENSE file.
  */
 
+/* Copyright (C) 2022 Intel Corporation
+* SPDX-License-Identifier: Apache-2.0
+*
+* Stream serialization for context and key
+*/
+
 #ifndef COMMON_H
 #define COMMON_H
 
