@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   try {
     const helib::Context* contextp = helib::ContextBuilder<helib::BGV>()
                                          .m(paramsOpts.m)
-                                         .p(p)
+                                         .p(paramsOpts.p)
                                          .r(paramsOpts.r)
                                          .bits(paramsOpts.Qbits)
                                          .c(paramsOpts.c)
