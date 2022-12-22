@@ -339,8 +339,7 @@ struct QueryType
             const std::vector<Matrix<long>>& weights,
             const bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 
   /**
    * @brief Constructor.
@@ -355,8 +354,7 @@ struct QueryType
             std::vector<Matrix<long>>&& weights,
             bool isThereAnOR) :
       Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {
-  }
+  {}
 };
 
 /**
@@ -451,41 +449,42 @@ private:
 
   /**
    * @brief Function that converts a space separated infix query with ANDs and
-   * ORs to reverse polish notation.
+   * ORs and prefix NOTs to reverse polish notation.
    * @param s Input string in infix notation.
    * @return A new string in polish notation.
    **/
   inline std::string convertToPostFix(const std::string& s)
   {
     // checks for well formed query:
-    // no consecutive arguments
+    // no consecutive operands
     std::regex consecArgs(R"(\b(?!(NOT|AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
-                 "invalid query string, found consecutive arguments");
+                "invalid query string, found consecutive arguments");
     //  No consecutive binary operators separated by spaces
-    std::regex consecBinOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
+    std::regex consecBinOps(R"(\b(AND|OR)+?\s+?(AND|OR)\s+?)");
     assertFalse(regex_search(s.begin(), s.end(), consecBinOps),
                 "invalid query string, found consecutive binary operators");
-    //  No binary operators immediately after NOT           
-    std::regex binOpAfterNot(R"(\b(NOT)+?\s+?(AND|OR)+?)");
+    //  No binary operators immediately after NOT
+    std::regex binOpAfterNot(R"(\b(NOT)+?\s+?(AND|OR)\s+?)");
     assertFalse(regex_search(s.begin(), s.end(), binOpAfterNot),
                 "invalid query string, found binary operator after NOT");
     // no empty brackets
     std::regex emptyBrackets(R"(\(\s*\))");
     assertFalse(regex_search(s.begin(), s.end(), emptyBrackets),
                 "invalid query, query contains empty brackets");
-    // no operators directly before right bracket            
+    // no operators directly before right bracket
     std::regex rightBracketsAndOps(R"(\b(AND|OR|NOT)\s*\))");
     assertFalse(regex_search(s.begin(), s.end(), rightBracketsAndOps),
                 "invalid query, operator next to right bracket");
-    // no binary operators directly after left bracket 
+    // no binary operators directly after left bracket
     std::regex leftBracketsAndOps(R"(\(\s*(AND|OR)\s+)");
     assertFalse(regex_search(s.begin(), s.end(), leftBracketsAndOps),
-                "invalid query, binary operator next to left bracket");    
+                "invalid query, binary operator next to left bracket");
     // can't start with binary operator or end with operator
     std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR|NOT)\s*$)");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
-                "invalid query, query starts with a binary operator or ends with an operator");
+                "invalid query, query starts with a binary operator or ends "
+                "with an operator");
     // number of left brackets = number of right brackets
     assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
                          std::count(s.begin(), s.end(), ')'),
@@ -860,21 +859,34 @@ public:
   {
     // checks for valid query
     // no consecutive operands
-    std::regex consecArgs(R"(\b(?!(AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
+    std::regex consecArgs(R"(\b(?!(NOT|AND|OR)\b)\w+\s+\b(?!(AND|OR)\b)\w+)");
     assertFalse(regex_search(s.begin(), s.end(), consecArgs),
                 "invalid query, found consecutive arguments");
-    // No consecutive operators
-    std::regex consecOps(R"(\b(AND|OR)+?\s+?(AND|OR)+?)");
-    assertFalse(regex_search(s.begin(), s.end(), consecOps),
-                "invalid query, found consecutive operators");
-    // no empty brackets, no operators directly before right bracket,
-    // no operators directly after left bracket
-    std::regex bracketsAndOps(R"((\(\s*(AND|OR|\))\s+)|(\b(AND|OR)\s*\)))");
-    assertFalse(regex_search(s.begin(), s.end(), bracketsAndOps),
-                "invalid query, binary operator next to bracket of wrong type");
-    std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR)\s*$)");
+    // No consecutive binary operators separated by spaces
+    std::regex consecBinOps(R"(\b(AND|OR)+?\s+?(AND|OR)\s+?)");
+    assertFalse(regex_search(s.begin(), s.end(), consecBinOps),
+                "invalid query, found consecutive binary operators");
+    //  No binary operators immediately after NOT
+    std::regex binOpAfterNot(R"(\b(NOT)+?\s+?(AND|OR)\s+?)");
+    assertFalse(regex_search(s.begin(), s.end(), binOpAfterNot),
+                "invalid query string, found binary operator after NOT");
+    // no empty brackets
+    std::regex emptyBrackets(R"(\(\s*\))");
+    assertFalse(regex_search(s.begin(), s.end(), emptyBrackets),
+                "invalid query, query contains empty brackets");
+    //, no operators directly before right bracket
+    std::regex rightBracketsAndOps(R"(\b(AND|OR|NOT)\s*\))");
+    assertFalse(regex_search(s.begin(), s.end(), rightBracketsAndOps),
+                "invalid query, operator next to right bracket");
+    // no binary operators directly after left bracket
+    std::regex leftBracketsAndOps(R"(\(\s*(AND|OR)\s+)");
+    assertFalse(regex_search(s.begin(), s.end(), leftBracketsAndOps),
+                "invalid query, binary operator next to left bracket");
+    // can't start with binary operator or end with operator
+    std::regex startOrEndOp(R"(^\s*(AND|OR)|(AND|OR|NOT)\s*$)");
     assertFalse(regex_search(s.begin(), s.end(), startOrEndOp),
-                "invalid query, query starts or ends with an operator");
+                "invalid query, query starts with a binary operator or ends "
+                "with an operator");
     // number of left brackets = number of right brackets
     assertEq<LogicError>(std::count(s.begin(), s.end(), '('),
                          std::count(s.begin(), s.end(), ')'),
@@ -892,10 +904,17 @@ public:
         assertEq(columns.count(symbol),
                  1UL,
                  "Column name \'" + symbol + "\' not found.");
-        out << columns.at(symbol).first << " ";
-        // Append any additional columns if part of a composite column
-        for (long i = 1; i < columns.at(symbol).second; ++i) {
-          out << "AND " << columns.at(symbol).first + i << " ";
+        // If one dimensional column, just replace name with its index
+        if (columns.at(symbol).second == 1)
+          out << columns.at(symbol).first << " ";
+        else {
+          // Otherwise, must be a composite column. Replace with conjunction of
+          // indices. To allow for negations of composite columns, put inside of
+          // brackets.
+          out << "( " << columns.at(symbol).first << " ";
+          for (long i = 1; i < columns.at(symbol).second; ++i)
+            out << "AND " << columns.at(symbol).first + i << " ";
+          out << ") ";
         }
       }
     }

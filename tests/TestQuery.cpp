@@ -61,13 +61,13 @@ TEST(TestQuery, QueryBuilderFromStringInfixToPolishConversionWithNot)
       // test spaces, order of precedence, triple char operands
       helib::QueryBuilder("NOT a AND NOT b AND NOT c")};
   std::array<std::string, 8> expected{"a ! b &&",
-                                       "a b ! ||",
-                                       "b c || !",
-                                       "a ! ! b c || &&",
-                                       "a ! b ! && c ||",
-                                       "a b && c d && ! ! ||",
-                                       "a b && c d && e f ! || && ||",
-                                       "a ! b ! && c ! &&"};
+                                      "a b ! ||",
+                                      "b c || !",
+                                      "a ! ! b c || &&",
+                                      "a ! b ! && c ||",
+                                      "a b && c d && ! ! ||",
+                                      "a b && c d && e f ! || && ||",
+                                      "a ! b ! && c ! &&"};
 
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i = " << i;
@@ -108,13 +108,12 @@ TEST(TestQuery, ExpectedThrowsInfixToPostFixNotationWithNot)
   EXPECT_THROW(helib::QueryBuilder("NOT A B AND C"), helib::LogicError);
   // throws because B next to NOT
   EXPECT_THROW(helib::QueryBuilder("A OR B NOT C"), helib::LogicError);
-  // throws because NOT next to right bracket 
+  // throws because NOT next to right bracket
   EXPECT_THROW(helib::QueryBuilder("(A OR B AND NOT)"), helib::LogicError);
   // throws because query ends with not
   EXPECT_THROW(helib::QueryBuilder("A OR B AND NOT"), helib::LogicError);
   // throws because NOT before AND
   EXPECT_THROW(helib::QueryBuilder("NOT AND C"), helib::LogicError);
-
 }
 
 TEST(TestQuery, TableFromString1DColumns)
@@ -282,11 +281,30 @@ TEST(TestQuery, BuildQueryStringMultidimensionalColumns)
       t0.buildQueryString("(a AND b AND c AND d)")};
   std::array<std::string, 7> expected{"0 AND 1 ",
                                       "0 OR 1 ",
-                                      "( 1 OR 2 AND 3 ) ",
-                                      "0 OR 1 AND 2 AND 3 ",
-                                      "( 0 OR 1 ) AND 2 AND 3 ",
-                                      "( 0 AND 1 ) OR ( 2 AND 3 AND 4 ) ",
-                                      "( 0 AND 1 AND 2 AND 3 AND 4 ) "};
+                                      "( 1 OR ( 2 AND 3 ) ) ",
+                                      "0 OR 1 AND ( 2 AND 3 ) ",
+                                      "( 0 OR 1 ) AND ( 2 AND 3 ) ",
+                                      "( 0 AND 1 ) OR ( ( 2 AND 3 ) AND 4 ) ",
+                                      "( 0 AND 1 AND ( 2 AND 3 ) AND 4 ) "};
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(input_exprs[i], expected[i]) << "*** i = " << i;
+  }
+}
+
+TEST(TestQuery, BuildQueryStringMultidimensionalColumnsWithNot)
+{
+  helib::Table t0("   TABLE   (a (1) ,b ,  c (2),d)  ");
+  std::array<std::string, 5> input_exprs{
+      t0.buildQueryString("a AND NOT b"),
+      t0.buildQueryString("NOT NOT a"),
+      t0.buildQueryString("NOT a OR b"),
+      t0.buildQueryString("NOT ( b OR c )"),
+      t0.buildQueryString("NOT (a OR NOT b AND c)")};
+  std::array<std::string, 5> expected{"0 AND NOT 1 ",
+                                      "NOT NOT 0 ",
+                                      "NOT 0 OR 1 ",
+                                      "NOT ( 1 OR ( 2 AND 3 ) ) ",
+                                      "NOT ( 0 OR NOT 1 AND ( 2 AND 3 ) ) "};
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i], expected[i]) << "*** i = " << i;
   }
@@ -315,6 +333,26 @@ TEST(TestQuery, ExpectedThrowsBuildQueryString)
   EXPECT_THROW(t.buildQueryString("a AND z"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("a ANDb"), helib::LogicError);
   EXPECT_THROW(t.buildQueryString("c ORb"), helib::LogicError);
+}
+
+TEST(TestQuery, ExpectedThrowsBuildQueryStringWithNot)
+{
+  helib::Table t("TABLE(a, b, c)");
+  // Throw for consecutive operands
+  EXPECT_THROW(t.buildQueryString("a b NOT c"), helib::LogicError);
+
+  // Throw for binary operator immediately after NOT
+  EXPECT_THROW(t.buildQueryString("a NOT AND b"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("a OR AND b"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("NOT OR a"), helib::LogicError);
+  // Throw for NOT next to right bracket
+  EXPECT_THROW(t.buildQueryString("(a NOT)"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("NOT (a NOT)"), helib::LogicError);
+  // Throws for query starting or ending with NOT operator
+  EXPECT_THROW(t.buildQueryString("a NOT"), helib::LogicError);
+  // Throw for unrecognised operand
+  EXPECT_THROW(t.buildQueryString("NOTa"), helib::LogicError);
+  EXPECT_THROW(t.buildQueryString("NOTa OR b"), helib::LogicError);
 }
 
 TEST(TestQuery, BuildQueryBuilderFromTable1DColumns)
@@ -347,7 +385,7 @@ TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns)
   // Multi-width columns
   helib::Table t1("TABLE(country (2), capital, population (1), currency (2))");
 
-  std::array<helib::QueryBuilder, 7> input_exprs{
+  std::array<helib::QueryBuilder, 9> input_exprs{
       helib::QueryBuilder(t1.buildQueryString("country AND capital")),
       helib::QueryBuilder(t1.buildQueryString("country OR capital")),
       helib::QueryBuilder(t1.buildQueryString("( capital OR population )")),
@@ -358,15 +396,42 @@ TEST(TestQuery, BuildQueryBuilderFromTableMultidimensionalColumns)
       helib::QueryBuilder(t1.buildQueryString(
           "( country AND capital ) OR ( population AND currency )")),
       helib::QueryBuilder(t1.buildQueryString(
-          "(country AND capital AND population AND currency)"))};
+          "(country AND capital AND population AND currency)")),
+      helib::QueryBuilder(t1.buildQueryString("(NOT country OR capital)")),
+      helib::QueryBuilder(
+          t1.buildQueryString("NOT (capital OR population AND currency)"))};
 
-  std::array<std::string, 7> expected{"0 1 && 2 &&",
+  std::array<std::string, 9> expected{"0 1 && 2 &&",
                                       "0 1 && 2 ||",
                                       "2 3 ||",
                                       "0 1 && 2 3 && ||",
                                       "0 1 && 2 || 3 &&",
-                                      "0 1 && 2 && 3 4 && 5 && ||",
-                                      "0 1 && 2 && 3 && 4 && 5 &&"};
+                                      "0 1 && 2 && 3 4 5 && && ||",
+                                      "0 1 && 2 && 3 && 4 5 && &&",
+                                      "0 1 && ! 2 ||",
+                                      "2 3 4 5 && && || !"};
+  for (size_t i = 0; i < input_exprs.size(); ++i) {
+    EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
+  }
+}
+
+TEST(TestQuery, BuildQueryBuilderFromTable1DColumnsWithNot)
+{
+  helib::Table t("TABLE(NOTE, SAND, ORDER)");
+  std::array<helib::QueryBuilder, 6> input_exprs{
+      helib::QueryBuilder(t.buildQueryString("NOT NOT NOTE")),
+      helib::QueryBuilder(t.buildQueryString("NOT SAND AND ORDER")),
+      helib::QueryBuilder(t.buildQueryString("NOT( SAND OR ORDER )")),
+      helib::QueryBuilder(t.buildQueryString("NOTE OR SAND AND NOT ORDER")),
+      helib::QueryBuilder(t.buildQueryString("NOT ( NOTE OR SAND ) AND ORDER")),
+      helib::QueryBuilder(t.buildQueryString(
+          "( SAND AND NOTE ) OR ( NOT SAND AND NOT ORDER )"))};
+  std::array<std::string, 6> expected{"0 ! !",
+                                      "1 ! 2 &&",
+                                      "1 2 || !",
+                                      "0 1 2 ! && ||",
+                                      "0 1 || ! 2 &&",
+                                      "1 0 && 1 ! 2 ! && ||"};
   for (size_t i = 0; i < input_exprs.size(); ++i) {
     EXPECT_EQ(input_exprs[i].getQueryString(), expected[i]) << "*** i= " << i;
   }
