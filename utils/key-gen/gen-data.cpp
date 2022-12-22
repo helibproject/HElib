@@ -75,7 +75,6 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  long p;
 
   if (paramsOpts.p < 2) {
     std::cerr << "BGV invalid plaintext modulus. "
