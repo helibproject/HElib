@@ -10,6 +10,10 @@
  * limitations under the License. See accompanying LICENSE file.
  */
 
+/* Copyright (C) 2022 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef HELIB_KEYS_H
 #define HELIB_KEYS_H
 /**
