@@ -10,6 +10,12 @@
  * limitations under the License. See accompanying LICENSE file.
  */
 
+/* Copyright (C) 2022 Intel Corporation
+* SPDX-License-Identifier: Apache-2.0
+*
+* Added tests for separated SK, PK and Key switching matrices
+*/
+
 /* Note this file only tests JSON (de)serialization.*/
 /* If you are searching for binary (de)serialization go to TestBinIO.cpp*/
 
