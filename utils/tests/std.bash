@@ -9,6 +9,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. See accompanying LICENSE file.
 
+# Copyright (C) 2022 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
+# Added Key-gen tests
+
 function random-char-string {
   local N=${1:-8}
   echo $(head /dev/urandom | LC_ALL=C tr -dc A-Za-z0-9 | head -c $N)
