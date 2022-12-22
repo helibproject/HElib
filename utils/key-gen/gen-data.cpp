@@ -82,7 +82,6 @@ int main(int argc, char* argv[])
               << std::endl;
     return EXIT_FAILURE;
   }
-  p = paramsOpts.p;
 
   try {
     const helib::Context* contextp = helib::ContextBuilder<helib::BGV>()
