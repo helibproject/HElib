@@ -9,6 +9,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. See accompanying LICENSE file.
  */
+ 
+/* Copyright (C) 2022 Intel Corporation
+* SPDX-License-Identifier: Apache-2.0
+*
+* Added tests for separated SK, PK and Key switching matrices
+*/
+
 #include <cmath> // isinf
 #include <cstring>
 #include <sstream>
