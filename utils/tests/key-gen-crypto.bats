@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 
+# Copyright (C) 2022 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
 load "std"
 
 # Specialised function for creating BGV data with invalid slot size
