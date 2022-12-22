@@ -9,6 +9,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. See accompanying LICENSE file.
  */
+ 
+/* Copyright (C) 2022 Intel Corporation
+* SPDX-License-Identifier: Apache-2.0
+*
+* Added functionallity for separating the SK, PK, and key switching matrices.
+*/
+
 #include <queue>
 
 #include <helib/keys.h>
