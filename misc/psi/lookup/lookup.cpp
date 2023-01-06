@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
       "Flag to signify input is in column format.", nullptr)
     .parse(argc, argv);
   // clang-format on
-  
+
   if (cmdLineOpts.nthreads < 1) {
     std::cerr << "Number of threads must be a postive integer. Setting n = 1."
               << std::endl;
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
   helib::QueryBuilder qbAnd(a && b);
   helib::QueryBuilder qbOr(a || b);
   helib::QueryBuilder qbExpand(a || (b && c));
-  
+
   helib::QueryType query = qb.build(database.columns());
   helib::QueryType queryAnd = qbAnd.build(database.columns());
   helib::QueryType queryOr = qbOr.build(database.columns());
