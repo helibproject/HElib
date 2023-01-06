@@ -321,8 +321,8 @@ inline auto Database<TXT>::contains(const std::string& query_string,
   while (input >> symbol) {
     if (symbol == "!") {
       auto& top = txtStack.top();
-      top.apply([&](auto& entry) { entry.negate(); });
-      top.apply([&](auto& entry) { entry.addConstant(NTL::ZZX(1L)); });
+      top.apply([](auto& entry) { entry.negate(); });
+      top.apply([](auto& entry) { entry.addConstant(NTL::ZZX(1L)); });
     } else if (symbol == "&&") {
       auto rhs = txtStack.top();
       txtStack.pop();
