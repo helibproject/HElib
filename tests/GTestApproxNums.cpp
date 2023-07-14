@@ -21,8 +21,7 @@
 #include "gtest/gtest.h"
 #include "test_common.h"
 
-#include <stdio.h>
-#include <stdarg.h>
+#include <cstdio.h>
 
 namespace {
 struct Parameters
@@ -455,9 +454,7 @@ TEST_P(GTestApproxNums, generalOpsWorks)
    10. c0 -= c3
    **************/
   long nslots = ea.size();
-
-  // Workaround for deprecated unsecure sprintf - commented out use of is and its data
-  // char buffer[32];
+  char buffer[32];
 
   std::vector<std::complex<double>> p0, p1, p2, p3;
   ea.random(p0);
@@ -517,17 +514,15 @@ TEST_P(GTestApproxNums, generalOpsWorks)
     std::vector<std::complex<double>> tmp_p(p1); // tmp = c1
     helib::Ctxt tmp(c1);
     
-    // Workaround for deprecated unsecure sprintf - commented out use of it
-    // sprintf(buffer, "tmp=c1>>=%d", (int)shamt);
+    EXPECT_TRUE(snprintf(buffer, buffer::size(), "tmp=c1>>=%d", (int)shamt) > 0);
     
     rotate(tmp_p,
            shamt); // ea.shift(tmp, random amount in [-nSlots/2,nSlots/2])
     ea.rotate(tmp, shamt);
 
-    // Workaround for deprecated unsecure sprintf - commented out use of it
-    // if (helib_test::verbose) {
-    //  CheckCtxt(tmp, buffer);
-    // }
+    if (helib_test::verbose) {
+      CheckCtxt(tmp, buffer);
+    }
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, tmp_p, tmp, epsilon));
 
     add(p2, tmp_p); // c2 += tmp
@@ -537,16 +532,14 @@ TEST_P(GTestApproxNums, generalOpsWorks)
     }
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, p2, c2, epsilon));
 
-    // Workaround for deprecated unsecure sprintf - commented out use of it
-    // sprintf(buffer, "c2>>>=%d", (int)rotamt);
+    EXPECT_TRUE(snprintf(buffer, buffer::size(), "c2>>>=%d", (int)rotamt) > 0);
     
     rotate(p2, rotamt); // ea.rotate(c2, random amount in [1-nSlots, nSlots-1])
     ea.rotate(c2, rotamt);
 
-    // Workaround for deprecated unsecure sprintf - commented out use of it
-    // if (helib_test::verbose) {
-    //   CheckCtxt(c2, buffer);
-    // }
+    if (helib_test::verbose) {
+      CheckCtxt(c2, buffer);
+    }
     
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, p2, c2, epsilon));
 
