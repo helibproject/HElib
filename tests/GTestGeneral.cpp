@@ -315,7 +315,7 @@ TEST_P(GTestGeneral, correctlyImplementsMixOfOperationsOverFourCiphertexts)
 
     helib::PtxtArray tmp_p(p1); // tmp = c1
     helib::Ctxt tmp(c1);
-    EXPECT_TRU(snprintf(buffer, sizeof(buffer), "tmp=c1>>=%d", (int)shamt) > 0);
+    EXPECT_TRUE(snprintf(buffer, sizeof(buffer), "tmp=c1>>=%d", (int)shamt) > 0);
     shift(tmp_p, shamt); // ea.shift(tmp, random amount in [-nSlots/2,nSlots/2])
     ea.shift(tmp, shamt);
     if (!helib_test::noPrint)
