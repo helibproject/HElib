@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <complex>
 
+#include <cstdio>
+
 #include <helib/norms.h>
 #include <helib/helib.h>
 #include <helib/debugging.h>
@@ -20,8 +22,6 @@
 
 #include "gtest/gtest.h"
 #include "test_common.h"
-
-#include <cstdio>
 
 namespace {
 struct Parameters
