@@ -21,7 +21,7 @@
 #include "gtest/gtest.h"
 #include "test_common.h"
 
-#include <cstdio.h>
+#include <cstdio>
 
 namespace {
 struct Parameters
