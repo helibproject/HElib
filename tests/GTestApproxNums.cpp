@@ -455,7 +455,9 @@ TEST_P(GTestApproxNums, generalOpsWorks)
    10. c0 -= c3
    **************/
   long nslots = ea.size();
-  char buffer[32];
+
+  // Workaround for deprecated unsecure sprintf - commented out use of is and its data
+  // char buffer[32];
 
   std::vector<std::complex<double>> p0, p1, p2, p3;
   ea.random(p0);
