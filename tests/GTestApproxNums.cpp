@@ -514,7 +514,7 @@ TEST_P(GTestApproxNums, generalOpsWorks)
     std::vector<std::complex<double>> tmp_p(p1); // tmp = c1
     helib::Ctxt tmp(c1);
     
-    EXPECT_TRUE(snprintf(buffer, buffer::size(), "tmp=c1>>=%d", (int)shamt) > 0);
+    EXPECT_TRUE(snprintf(buffer, sizeof(buffer[]), "tmp=c1>>=%d", (int)shamt) > 0);
     
     rotate(tmp_p,
            shamt); // ea.shift(tmp, random amount in [-nSlots/2,nSlots/2])
@@ -532,7 +532,7 @@ TEST_P(GTestApproxNums, generalOpsWorks)
     }
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, p2, c2, epsilon));
 
-    EXPECT_TRUE(snprintf(buffer, buffer::size(), "c2>>>=%d", (int)rotamt) > 0);
+    EXPECT_TRUE(snprintf(buffer, sizeof(buffer[]), "c2>>>=%d", (int)rotamt) > 0);
     
     rotate(p2, rotamt); // ea.rotate(c2, random amount in [1-nSlots, nSlots-1])
     ea.rotate(c2, rotamt);
