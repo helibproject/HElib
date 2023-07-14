@@ -514,13 +514,18 @@ TEST_P(GTestApproxNums, generalOpsWorks)
 
     std::vector<std::complex<double>> tmp_p(p1); // tmp = c1
     helib::Ctxt tmp(c1);
-    EXPECT_TRUE(vsprintf(buffer, "tmp=c1>>=%d", (int)shamt) > 0);
+    
+    // Workaround for deprecated unsecure sprintf - commented out use of it
+    // sprintf(buffer, "tmp=c1>>=%d", (int)shamt);
+    
     rotate(tmp_p,
            shamt); // ea.shift(tmp, random amount in [-nSlots/2,nSlots/2])
     ea.rotate(tmp, shamt);
-    if (helib_test::verbose) {
-      CheckCtxt(tmp, buffer);
-    }
+
+    // Workaround for deprecated unsecure sprintf - commented out use of it
+    // if (helib_test::verbose) {
+    //  CheckCtxt(tmp, buffer);
+    // }
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, tmp_p, tmp, epsilon));
 
     add(p2, tmp_p); // c2 += tmp
@@ -530,12 +535,17 @@ TEST_P(GTestApproxNums, generalOpsWorks)
     }
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, p2, c2, epsilon));
 
-    EXPECT_TRUE(vsprintf(buffer, "c2>>>=%d", (int)rotamt) > 0 );
+    // Workaround for deprecated unsecure sprintf - commented out use of it
+    // sprintf(buffer, "c2>>>=%d", (int)rotamt);
+    
     rotate(p2, rotamt); // ea.rotate(c2, random amount in [1-nSlots, nSlots-1])
     ea.rotate(c2, rotamt);
-    if (helib_test::verbose) {
-      CheckCtxt(c2, buffer);
-    }
+
+    // Workaround for deprecated unsecure sprintf - commented out use of it
+    // if (helib_test::verbose) {
+    //   CheckCtxt(c2, buffer);
+    // }
+    
     EXPECT_TRUE(ciphertextMatches(ea, secretKey, p2, c2, epsilon));
 
     negateVec(p1); // c1.negate()
