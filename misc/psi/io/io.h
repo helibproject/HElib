@@ -37,25 +37,21 @@
 using sharedContext = std::shared_ptr<helib::Context>;
 using Ptxt = helib::Ptxt<helib::BGV>;
 
-template <typename TXT>
-helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
-                                    const sharedContext& contextp,
-                                    const helib::PubKey& pk)
+template <typename TXT, typename StreamDispenser>
+helib::Database<TXT> readDbFromStream(const StreamDispenser& databaseStreamDispenser,
+                                      const sharedContext& contextp,
+                                      const helib::PubKey& pk)
 {
-  // Read in TXT file header
-  std::ifstream databaseFile(databaseFilePath);
-  if (!databaseFile.is_open()) {
-    throw std::runtime_error("Could not open file '" + databaseFilePath + "'.");
-  }
-
+  auto databaseStreamPtr = databaseStreamDispenser.get();
   TXT zero_txt(pk);
   // This is only needed for TXT = Ctxt
   std::optional<Reader<TXT>> reader;
   long nrow, ncol;
   if constexpr (std::is_same_v<TXT, Ptxt>) {
-    std::tie(nrow, ncol) = parseDimsHeader(readline(databaseFile));
+    std::tie(nrow, ncol) = parseDimsHeader(readline(*databaseStreamPtr.get()));
   } else {
-    reader.emplace(Reader<helib::Ctxt>(databaseFilePath, zero_txt));
+    // TODO
+    reader.emplace(databaseStreamPtr, zero_txt);
     nrow = reader.value().getTOC().getRows();
     ncol = reader.value().getTOC().getCols();
   }
@@ -66,7 +62,7 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
     // Read in ptxts
     std::vector<std::string> ptxt_strings(nrow * ncol);
     for (auto& ptxt : ptxt_strings) {
-      std::getline(databaseFile, ptxt, '\n');
+      std::getline(*databaseStreamPtr.get(), ptxt, '\n');
     }
     // Populate Matrix
     for (long i = 0; i < nrow; ++i) {
@@ -77,7 +73,9 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
     }
   } else { // Ctxt query
     NTL_EXEC_RANGE(nrow * ncol, first, last)
-    Reader<TXT> threadReader(reader.value());
+    // Create new reader for each thread
+    auto databaseStreamThreadPtr = databaseStreamDispenser.get();
+    Reader<TXT> threadReader(databaseStreamThreadPtr, zero_txt);
     for (long i = first; i < last; ++i) {
       long row = i / ncol;
       long col = i % ncol;
@@ -89,24 +87,20 @@ helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
   return helib::Database<TXT>(data, contextp);
 }
 
-template <typename TXT>
-helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
-                                     const helib::PubKey& pk)
+template <typename TXT, typename StreamDispenser>
+helib::Matrix<TXT> readQueryFromStream(const StreamDispenser& queryStreamDispenser,
+                                       const helib::PubKey& pk)
 {
-  // Read in TXT file header
-  std::ifstream queryFile(queryFilePath);
-  if (!queryFile.is_open()) {
-    throw std::runtime_error("Could not open file '" + queryFilePath + "'.");
-  }
-
+  auto queryStreamPtr = queryStreamDispenser.get();
   TXT zero_txt(pk);
   // This is only needed for TXT = Ctxt
   std::optional<Reader<TXT>> reader;
   long nrow, ncol;
   if constexpr (std::is_same_v<TXT, Ptxt>) { // Ptxt query
-    std::tie(nrow, ncol) = parseDimsHeader(readline(queryFile));
+    std::tie(nrow, ncol) = parseDimsHeader(readline(*queryStreamPtr.get()));
   } else { // Ctxt query
-    reader.emplace(Reader<helib::Ctxt>(queryFilePath, zero_txt));
+    // TODO
+    reader.emplace(queryStreamPtr, zero_txt);
     nrow = reader.value().getTOC().getRows();
     ncol = reader.value().getTOC().getCols();
   }
@@ -122,7 +116,7 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
     // Read in ptxts
     std::vector<std::string> ptxt_strings(nrow * ncol);
     for (auto& ptxt : ptxt_strings) {
-      std::getline(queryFile, ptxt, '\n');
+      std::getline(*queryStreamPtr.get(), ptxt, '\n');
     }
     // Populate Matrix
     for (long i = 0; i < ptxt_strings.size(); ++i) {
@@ -132,7 +126,9 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
   } else { // Ctxt query
     // Read in ctxts
     NTL_EXEC_RANGE(nrow * ncol, first, last)
-    Reader<TXT> threadReader(reader.value());
+    // Create new reader for each thread
+    auto queryStreamThreadPtr = queryStreamDispenser.get();
+    Reader<TXT> threadReader(queryStreamThreadPtr, zero_txt);
     for (long i = first; i < last; ++i) {
       long row = i / ncol;
       long col = i % ncol;
@@ -145,6 +141,35 @@ helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
   }
 
   return query;
+}
+
+template <typename TXT>
+helib::Database<TXT> readDbFromFile(const std::string& databaseFilePath,
+                                    const sharedContext& contextp,
+                                    const helib::PubKey& pk)
+{
+  auto streamDispenser = make_stream_dispenser<std::ifstream>(databaseFilePath);
+  // Read in TXT file header
+  // std::ifstream databaseFile(databaseFilePath);
+  // if (!databaseFile.is_open()) {
+    // throw std::runtime_error("Could not open file '" + databaseFilePath + "'.");
+  // }
+
+  return readDbFromStream<TXT>(streamDispenser, contextp, pk);
+}
+
+template <typename TXT>
+helib::Matrix<TXT> readQueryFromFile(const std::string& queryFilePath,
+                                     const helib::PubKey& pk)
+{
+  auto streamDispenser = make_stream_dispenser<std::ifstream>(queryFilePath);
+  // Read in TXT file header
+  // std::ifstream queryFile(queryFilePath);
+  // if (!queryFile.is_open()) {
+    // throw std::runtime_error("Could not open file '" + queryFilePath + "'.");
+  // }
+
+  return readQueryFromStream<TXT>(streamDispenser, pk);
 }
 
 // Writes out a matrix to file
