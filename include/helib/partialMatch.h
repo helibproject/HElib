@@ -9,17 +9,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. See accompanying LICENSE file.
  */
-
+/* Copyright (C) 2022 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Extended HElib to support the Not operator in queries.
+ * Contributions include
+ *
+ * Added:
+ *   Database:
+ *                 template <typename TXT2>
+              auto contains(const std::string& query_string, const Matrix<TXT2>&
+ query_data) const
+ */
 #ifndef HELIB_PARTIALMATCH_H
 #define HELIB_PARTIALMATCH_H
 
 #include <sstream>
-#include <stack>
 
 #include <helib/Matrix.h>
 #include <helib/PolyMod.h>
+#include <helib/query.h>
 
-// This code is in flux and should be considered bery alpha.
+// This code is in flux and should be considered very alpha.
 // Not recommended for public use.
 
 namespace helib {
@@ -99,16 +110,16 @@ Matrix<Ctxt> calculateMasks(const EncryptedArray& ea,
   if constexpr (std::is_same_v<TXT, Ptxt<BGV>>) {
     auto tmp = database.deepCopy();
     (tmp -= mask)
-      .apply([&](auto& entry) { mapTo01(ea, entry); })
-      .apply([](auto& entry) { entry.negate(); })
-      .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
+        .apply([&](auto& entry) { mapTo01(ea, entry); })
+        .apply([](auto& entry) { entry.negate(); })
+        .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
 
     return tmp;
   } else { // Ctxt Query
     (mask -= database)
-      .apply([&](auto& entry) { mapTo01(ea, entry); })
-      .apply([](auto& entry) { entry.negate(); })
-      .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
+        .apply([&](auto& entry) { mapTo01(ea, entry); })
+        .apply([](auto& entry) { entry.negate(); })
+        .apply([](auto& entry) { entry.addConstant(NTL::ZZX(1l)); });
 
     return mask;
   }
@@ -118,7 +129,7 @@ Matrix<Ctxt> calculateMasks(const EncryptedArray& ea,
  * @brief Given a mask and information about the query to be performed,
  * calculates a score for each matching element signified by the mask.
  * @tparam TXT type of the mask matrix. Must be a `Ptxt` or `Ctxt`.
- * @param index_sets The set of indicies signifying which columns of the mask
+ * @param index_sets The set of indices signifying which columns of the mask
  * to query.
  * @param offsets The constant term to be added to the final score of each
  * queried column.
@@ -192,357 +203,6 @@ inline PolyMod partialMatchEncode(uint32_t input, const Context& context)
   return PolyMod(coeffs, context.getSlotRing());
 }
 
-struct Expr;
-class ColNumber;
-
-/**
- * @brief A class wrapping a shared pointer to an `Expr` object.
- **/
-class QueryExpr
-{
-  public:
-  std::shared_ptr<Expr> exp;
-  /**
-   * @brief Constructor.
-   * @param p The `std::shared_ptr` to wrap into a `QueryExpr`.
-   **/
-  QueryExpr(std::shared_ptr<Expr> p) : exp(p) {} 
-};
-
-/**
- * @struct Expr
- * @brief Base structure for logical expressions.
- * @note This is pure virtual.
- **/
-struct Expr
-{
-  virtual std::string eval() const = 0;
-  virtual ~Expr() = default;
-};
-
-/**
- * @class ColNumber
- * @brief An object representing a column of a database as an expression which
- * inherits from `Expr`.
- **/
-class ColNumber : public Expr
-{
-public:
-  /**
-   * @brief Function for returning the column number of the object.
-   * @return A string representation of the column number.
-   **/
-  std::string eval() const override { return std::to_string(column); }
-
-  /**
-   * @brief Constructor.
-   * @param c The column number.
-   **/
-  ColNumber(long c) : column(c) {}
-
-private:
-  long column;
-};
-
-/**
- * @brief Utility function for creating a `QueryExpr` for a specified column
- * in a query.
- * @param cl The index of the column to be used in the query.
- * @return `QueryExpr` with the specified `ColNumber` as the `Expr`.
- **/
-inline QueryExpr makeQueryExpr(long cl)
-{
-  ColNumber col(cl);
-  return QueryExpr(std::make_shared<ColNumber>(col));
-}
-
-
-/**
- * @class And
- * @brief An object representing the logical `AND` expression which inherits from
- * `Expr`.
- **/
-class And : public Expr
-{
-public:
-  /**
-   * @brief Function for returning the logical `AND` expression in reverse polish
-   * notation where the `AND` operation is represented by `&&` and each operand
-   * is a column number.
-   * @return A string representing the `AND` expression in reverse polish
-   * notation.
-   **/
-  std::string eval() const override
-  {
-    return lhs.exp->eval() + " " + rhs.exp->eval() + " &&";
-  }
-
-  /**
-   * @brief Constructor.
-   * @param l The left operand of the expression.
-   * @param r The right operand of the expression.
-   **/
-  And(const QueryExpr& l, const QueryExpr& r) : lhs(l), rhs(r) {}
-
-private:
-  QueryExpr lhs;
-  QueryExpr rhs;
-};
-
-/**
- * @class Or
- * @brief An object representing the logical OR expression which inherits from
- * `Expr`.
- **/
-class Or : public Expr
-{
-public:
-  /**
-   * @brief Function for returning the logical OR expression in reverse polish
-   * notation where the OR operation is represented by `||` and each operand
-   * is a column number.
-   * @return A string representing the OR expression in reverse polish
-   * notation.
-   **/
-  std::string eval() const override
-  {
-    return lhs.exp->eval() + " " + rhs.exp->eval() + " ||";
-  }
-
-  /**
-   * @brief Constructor.
-   * @param l The left operand of the expression.
-   * @param r The right operand of the expression.
-   **/
-  Or(const QueryExpr& l, const QueryExpr& r) : lhs(l), rhs(r) {}
-
-private:
-  QueryExpr lhs;
-  QueryExpr rhs;
-};
-
-/**
- * @brief Overloaded operator for creating a `QueryExpr` to an `AND`
- * expression.
- * @param lhs Left operand of the `AND` expression.
- * @param rhs Right operand of the `AND` expression.
- * @return `QueryExpr` with the `AND` as the `Expr`.
- **/
-inline QueryExpr operator&&(const QueryExpr& lhs,
-                                       const QueryExpr& rhs)
-{
-  return QueryExpr(std::make_shared<And>(lhs.exp, rhs.exp));
-}
-
-/**
- * @brief Overloaded operator for creating a `QueryExpr` of an `OR`
- * expression.
- * @param lhs Left operand of the `OR` expression.
- * @param rhs Right operand of the `OR` expression.
- * @return `QueryExpr` with the OR as the `Expr`.
- **/
-inline QueryExpr operator||(const QueryExpr& lhs,
-                                      const QueryExpr& rhs)
-{
-  return QueryExpr(std::make_shared<Or>(lhs.exp, rhs.exp));
-}
-
-/**
- * @struct Query_t
- * @brief Structure containing all information required for an HE query.
- **/
-struct Query_t
-{
-  /**
-   * @brief `std::vector` of index sets. These index sets specify the indexes
-   * of the columns in each column subset.
-   **/
-  std::vector<std::vector<long>> Fs;
-
-  /**
-   * @brief `std::vector` of offsets. Each offset is a constant value. There
-   * should be a single offset for each index set.
-   **/
-  std::vector<long> mus;
-
-  /**
-   * @brief `std::vector` of a set of weights. Each weight set corresponds to a
-   * single index set where each individual weight corresponds to the index of
-   * the index set.
-   **/
-  std::vector<Matrix<long>> taus;
-
-  /**
-   * @brief Flag indicating if the query contains a logical OR operation. This
-   * is used for optimization purposes.
-   **/
-  bool containsOR = false;
-
-  /**
-   * @brief Constructor.
-   * @param index_sets The set of column subsets.
-   * @param offsets The set of offset constants.
-   * @param weights The set of weight sets.
-   * @param isThereAnOR Boolean value indicating if the query contains an OR
-   * operation.
-   **/
-  Query_t(const std::vector<std::vector<long>>& index_sets,
-          const std::vector<long>& offsets,
-          const std::vector<Matrix<long>>& weights,
-          const bool isThereAnOR) :
-      Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
-
-  /**
-   * @brief Constructor.
-   * @param index_sets The set of column subsets.
-   * @param offsets The set of offset constants.
-   * @param weights The set of weight sets.
-   * @param isThereAnOR Boolean value indicating if the query contains an OR
-   * operation.
-   **/
-  Query_t(std::vector<std::vector<long>>&& index_sets,
-          std::vector<long>&& offsets,
-          std::vector<Matrix<long>>&& weights,
-          bool isThereAnOR) :
-      Fs(index_sets), mus(offsets), taus(weights), containsOR(isThereAnOR)
-  {}
-};
-
-/**
- * @class QueryBuilder
- * @brief An object used to construct a `Query_t` object from a logical
- * expression.
- **/
-class QueryBuilder
-{
-
-  // 'outer' vec are the and groups and 'inner' are the or groups
-  using vecvec = std::vector<std::vector<long>>;
-
-public:
-  /**
-   * @brief Constructor.
-   * @param expr The logical expression to build.
-   * @note The expression is evaluated to reverse polish notation.
-   **/
-  QueryBuilder(const QueryExpr& expr) : query_str(expr.exp->eval()) {}
-
-  /**
-   * @brief Function for building the `Query_t` object from the expression.
-   * @param columns The total number of columns in the column set.
-   * @return The resultant `Query_t` object containing information relating to
-   * the query.
-   **/
-  Query_t build(long columns) const
-  {
-
-    // Convert the query to "type 1" by expanding out necessary ORs
-    vecvec expr = expandOr(query_str);
-    bool containsOR = false;
-
-    vecvec Fs(expr.size());
-    {
-      std::vector<long> v(columns);
-      std::iota(v.begin(), v.end(), 0);
-      std::fill(Fs.begin(), Fs.end(), v);
-    }
-    std::vector<long> mus(expr.size(), 1);
-    std::vector<Matrix<long>> taus;
-    taus.reserve(expr.size());
-
-    // Create the taus
-    for (long i = 0; i < long(expr.size()); ++i) { // Each tau
-      mus[i] = 0;                                  // Set mu to zero.
-      Matrix<long> M(columns, 1);                  // Create temp tau matrix
-      containsOR = (expr[i].size() > 1) ? true : containsOR;
-      for (long j = 0; j < long(expr[i].size()); ++j) // Each column index
-        M(expr[i][j], 0) = 1;                         // Mark those columns as 1
-      taus.push_back(std::move(M));
-    }
-
-    return Query_t(std::move(Fs), std::move(mus), std::move(taus), containsOR);
-  }
-
-private:
-  std::string query_str;
-
-  void printStack(std::stack<vecvec> stack)
-  {
-    while (!stack.empty()) {
-      printVecVec(stack.top());
-      stack.pop();
-    }
-  }
-
-  void printVecVec(const vecvec& vv)
-  {
-    for (const auto& v : vv) {
-      std::cout << "[ ";
-      for (const auto& e : v) {
-        std::cout << e << " ";
-      }
-      std::cout << "]";
-    }
-    std::cout << "\n";
-  }
-
-  bool isNumber(const std::string& s) const
-  {
-    // Positive only
-    return std::all_of(s.begin(), s.end(), ::isdigit);
-  }
-
-  vecvec expandOr(const std::string& s) const
-  {
-    std::stack<vecvec> convertStack;
-
-    std::istringstream input{s};
-    std::ostringstream output{};
-
-    std::string symbol;
-
-    while (input >> symbol) {
-      if (!symbol.compare("&&")) {
-        // Squash the top into penultimate.
-        auto op = convertStack.top();
-        convertStack.pop();
-        auto& top = convertStack.top();
-        top.insert(top.end(), op.begin(), op.end());
-      } else if (!symbol.compare("||")) {
-        // Cartesian-esque product
-        auto op1 = convertStack.top();
-        convertStack.pop();
-        auto op2 = convertStack.top();
-        convertStack.pop();
-
-        vecvec prod;
-        prod.reserve(op1.size() * op2.size());
-        for (const auto& i : op1)
-          for (const auto& j : op2) {
-            auto x = i;
-            x.insert(x.end(), j.begin(), j.end());
-            prod.push_back(std::move(x));
-          }
-
-        convertStack.push(std::move(prod));
-      } else {
-        // Assume it is a number. But sanity check anyway.
-        assertTrue(isNumber(symbol),
-                   "String is not a number: '" + symbol + "'");
-        convertStack.emplace(vecvec(1, {std::stol(symbol)}));
-      }
-    }
-
-    // Now read answer off stack (should be size == 1).
-    assertEq<LogicError>(1UL,
-                         convertStack.size(),
-                         "Size of stack after expandOr should be 1");
-
-    return std::move(convertStack.top());
-  }
-};
-
 /**
  * @class Database
  * @tparam TXT The database is templated on `TXT` which can either be a `Ctxt`
@@ -580,22 +240,37 @@ public:
       context(std::shared_ptr<const helib::Context>(&c, [](auto UNUSED p) {}))
   {}
 
-  // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
   /**
-   * @brief Function for performing a database lookup given a query expression
-   * and query data.
+   * @brief Overloaded function for performing a database lookup given a query
+   *  expression and query data.
    * @tparam TXT2 The type of the query data, can be either a `Ctxt` or
    * `Ptxt<BGV>`.
    * @param lookup_query The lookup query expression to perform.
    * @param query_data The lookup query data to compare with the database.
-   * @return A `Matrix<TXT2>` containing 1s and 0s in slots where there was a
-   * match or no match respectively.
+   * @return A `Matrix<TXT>` containing 1s and 0s in slots where there was a
+   * match or no match respectively. The return type `TXT` is `Ctxt` if either
+   * query of database is encrypted, and `Ptxt<BGV>` otherwise.
    **/
   template <typename TXT2>
-  auto contains(const Query_t& lookup_query,
+  auto contains(const QueryType& lookup_query,
                 const Matrix<TXT2>& query_data) const;
 
-  // FIXME: Combination of TXT = ctxt and TXT2 = ptxt does not work
+  /**
+   * @brief Overloaded function for performing a database lookup given a query
+   *  string and query data.
+   * @tparam TXT2 The type of the query data, can be either a `Ctxt` or
+   * `Ptxt<BGV>`.
+   * @param lookup_query A query string in Reverse Polish Notation with only
+   *`ANDs` and `NOTs`.
+   * @param query_data The lookup query data to compare with the database.
+   * @return A `Matrix<TXT>` containing 1s and 0s in slots where there was a
+   * match or no match respectively. The return type `TXT` is `Ctxt` if either
+   * query of database is encrypted, and `Ptxt<BGV>` otherwise.
+   **/
+  template <typename TXT2>
+  auto contains(const std::string& query_string,
+                const Matrix<TXT2>& query_data) const;
+
   /**
    * @brief Function for performing a weighted partial match given a query
    * expression and query data.
@@ -603,10 +278,12 @@ public:
    * `Ptxt<BGV>`.
    * @param weighted_query The weighted lookup query expression to perform.
    * @param query_data The query data to compare with the database.
-   * @return A `Matrix<TXT2>` containing a score on weighted matches.
+   * @return A `Matrix<TXT>` containing a score on weighted matches. The return
+   * type `TXT` is `Ctxt` if either query of database is encrypted, and
+   * `Ptxt<BGV>` otherwise.
    **/
   template <typename TXT2>
-  auto getScore(const Query_t& weighted_query,
+  auto getScore(const QueryType& weighted_query,
                 const Matrix<TXT2>& query_data) const;
 
   // TODO - correct name?
@@ -614,7 +291,7 @@ public:
    * @brief Returns number of columns in the database.
    * @return The number of columns in the database.
    **/
-  long columns() { return data.dims(1); }
+  long columns() const { return data.dims(1); }
 
   Matrix<TXT>& getData();
 
@@ -625,9 +302,70 @@ private:
 
 template <typename TXT>
 template <typename TXT2>
-inline auto Database<TXT>::contains(
-    const Query_t& lookup_query,
-    const Matrix<TXT2>& query_data) const
+inline auto Database<TXT>::contains(const std::string& query_string,
+                                    const Matrix<TXT2>& query_data) const
+{
+  // resolve type names: if both are ptxt, return ptxt, otherwise return ctxt
+  using RTXT = typename std::conditional<(std::is_same_v<TXT, Ptxt<BGV>>)&&(
+                                             std::is_same_v<TXT2, Ptxt<BGV>>),
+                                         Ptxt<BGV>,
+                                         Ctxt>::type;
+
+  auto mask = calculateMasks(context->getEA(), query_data, this->data);
+
+  std::istringstream input(query_string);
+
+  std::stack<Matrix<RTXT>> txtStack;
+  std::string symbol;
+
+  while (input >> symbol) {
+    if (symbol == "!") {
+      auto& top = txtStack.top();
+      top.apply([](auto& entry) { entry.negate(); });
+      top.apply([](auto& entry) { entry.addConstant(NTL::ZZX(1L)); });
+    } else if (symbol == "&&") {
+      auto rhs = txtStack.top();
+      txtStack.pop();
+
+      auto& lhs = txtStack.top();
+      lhs.template entrywiseOperation<RTXT>(
+          rhs,
+          [](auto& l, const auto& r) -> decltype(auto) {
+            l.multiplyBy(r);
+            return l;
+          });
+    } else {
+      // If symbol is ||, throw a specific error
+      assertFalse(symbol == "||",
+                  "Cannot evaluate contains() on a string which contains Or "
+                  "operator: first call removeOr()");
+      // Otherwise, verify symbol is a number
+      assertTrue(isNumber(symbol), "String is not a number: '" + symbol + "'");
+      // And verify the number is in [0,...,columns - 1]
+      assertTrue((std::stol(symbol) >= 0) &&
+                     ((std::stol(symbol) < this->columns())),
+                 "column is out of range");
+      // push a copy of mask[symbol]. To take a deep copy, first make a matrix
+      // of the right type and dimension with zeroes in every entry.
+      auto ones(mask(0, 0));
+      ones.clear();
+      ones.addConstant(NTL::ZZX(0L));
+      Matrix<RTXT> col(ones, mask.dims(0), 1l);
+      // now add the entries we want to the RHS
+      col += mask.getColumn(std::stol(symbol));
+      txtStack.push(col);
+    }
+  }
+  assertEq<LogicError>(1UL,
+                       txtStack.size(),
+                       "Size of stack after evaluation should be 1");
+  return std::move(txtStack.top());
+}
+
+template <typename TXT>
+template <typename TXT2>
+inline auto Database<TXT>::contains(const QueryType& lookup_query,
+                                    const Matrix<TXT2>& query_data) const
 {
   auto result = getScore<TXT2>(lookup_query, query_data);
 
@@ -644,9 +382,8 @@ inline auto Database<TXT>::contains(
 
 template <typename TXT>
 template <typename TXT2>
-inline auto Database<TXT>::getScore(
-    const Query_t& weighted_query,
-    const Matrix<TXT2>& query_data) const
+inline auto Database<TXT>::getScore(const QueryType& weighted_query,
+                                    const Matrix<TXT2>& query_data) const
 {
   auto mask = calculateMasks(context->getEA(), query_data, this->data);
 
