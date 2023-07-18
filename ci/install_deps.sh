@@ -36,7 +36,7 @@ CXX_COMPILER="${4}"
 USE_INTEL_HEXL="${5}"
 
 if [ "${USE_INTEL_HEXL}" == "ON" ]; then
-  git clone https://github.com/intel/hexl.git -b v1.2.1
+  git clone https://github.com/intel/hexl.git -b v1.2.4
   cd hexl
   cmake -B build \
     -DCMAKE_INSTALL_PREFIX=./ \
@@ -49,12 +49,13 @@ fi
 
 cd $HOME
 
-if [ "${RUNNER_OS}" == "ubuntu-20.04" ]; then
+# Remove substr after dash char e.g. ubuntu20.04 -> ubuntu
+if [ "${RUNNER_OS%-*}" == "ubuntu" ]; then
     sudo apt-get -yq --no-install-suggests --no-install-recommends install libgmp-dev libntl-dev bats
 fi
 
-if [ "${RUNNER_OS}" == "macos-latest" ]; then
-  brew install ntl
+if [ "${RUNNER_OS}" == "macos-latest" ]  || [ "${RUNNER_OS}" == "macos-12" ] || [ "${RUNNER_OS}" == "macos-13" ] ; then
+  brew install ntl bats-core
 fi
 
 cd "$HOME"

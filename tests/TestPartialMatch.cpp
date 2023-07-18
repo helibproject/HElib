@@ -10,6 +10,20 @@
  * limitations under the License. See accompanying LICENSE file.
  */
 
+/* Copyright (C) 2022 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Extended HElib to support the Not operator in queries.
+ * Contributions include
+ *
+ * Added:
+ *   TEST_P(TestPartialMatch, databaseLookupContainsOnStringsPtxtMatchesCtxt)
+ *   TEST_P(TestPartialMatch, databaseLookupWorksWithQueryAPIWithNot)
+ *   TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyWithNot)
+ *   TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyForStrings)
+ *
+ */
+
 #include <bitset>
 
 #include <helib/helib.h>
@@ -608,6 +622,143 @@ TEST_P(TestPartialMatch, databaseLookupWorksCorrectly)
     }
 }
 
+TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyForStrings)
+{
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_database(2l, 5l);
+  // columns/features
+  std::vector<std::vector<long>> plaintext_database_numbers = {
+      {6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
+      {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
+      {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}};
+  for (int i = 0; i < 5; ++i) {
+    plaintext_database(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+    plaintext_database(1, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+  }
+
+  // Have to pass in a no-op deleter because this context is handled by the
+  // fixture
+  helib::Database<helib::Ptxt<helib::BGV>> database(plaintext_database,
+                                                    context);
+
+  // columns/features
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_query(1l, 5l);
+  std::vector<std::vector<long>> plaintext_query_numbers = {
+      {6, 6, 6, 2, 6, 6, 4, 9, 6, 2, 1, 4},
+      {7, 8, 1, 3, 9, 4, 3, 8, 6, 2, 1, 4},
+      {2, 2, 2, 5, 9, 1, 2, 2, 6, 2, 1, 4},
+      {1, 1, 5, 1, 1, 6, 1, 8, 6, 2, 1, 4},
+      {4, 4, 9, 4, 2, 4, 6, 4, 6, 2, 1, 4}};
+  for (int i = 0; i < 5; ++i)
+    plaintext_query(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_query_numbers[i]);
+
+  // make a query builder to perform the query, q = (c0 && c2) || (c3 && c4)
+  helib::QueryBuilder qb((helib::makeQueryExpr(0) && helib::makeQueryExpr(2)) ||
+                         (helib::makeQueryExpr(3) && helib::makeQueryExpr(4)));
+
+  qb.removeOr();
+  auto clean = [](auto& x) { x.cleanUp(); };
+  auto result =
+      database.contains(qb.getQueryString(), plaintext_query).apply(clean);
+
+  // Initialize all as one so no need to worry about padding matching
+  helib::Ptxt<helib::BGV> expected_result(context, NTL::ZZX(1l));
+  expected_result[0] = 1;  // First row identical      -> q = true
+  expected_result[1] = 1;  // Only c1 differs          -> q = true
+  expected_result[2] = 1;  // Only (c0 and c2) matches -> q = true
+  expected_result[3] = 1;  // Only (c3 and c4) matches -> q = true
+  expected_result[4] = 0;  // Only c0 and c3 match     -> q = false
+  expected_result[5] = 0;  // Only c0 and c4 match     -> q = false
+  expected_result[6] = 0;  // Only c2 and c3 match     -> q = false
+  expected_result[7] = 0;  // Only c2 and c4 match     -> q = false
+  expected_result[8] = 0;  // Only c0 matches          -> q = false
+  expected_result[9] = 0;  // Only c2 matches          -> q = false
+  expected_result[10] = 0; // Only c3 matches          -> q = false
+  expected_result[11] = 0; // Only c4 matches          -> q = false
+
+  EXPECT_EQ(result.dims(1), 1l);
+  EXPECT_EQ(result.dims(0), 2l);
+  for (size_t i = 0; i < result.dims(0); ++i)
+    EXPECT_EQ(result(i, 0), expected_result);
+}
+
+TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyWithNot)
+{
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_database(2l, 5l);
+  // columns/features
+  std::vector<std::vector<long>> plaintext_database_numbers = {
+      {6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
+      {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
+      {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}};
+  for (int i = 0; i < 5; ++i) {
+    plaintext_database(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+    plaintext_database(1, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+  }
+
+  // columns/features
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_query(1l, 5l);
+  std::vector<std::vector<long>> plaintext_query_numbers = {
+      {6, 6, 6, 2, 6, 6, 4, 9, 6, 2, 1, 4},
+      {7, 8, 1, 3, 9, 4, 3, 8, 6, 2, 1, 4},
+      {2, 2, 2, 5, 9, 1, 2, 2, 6, 2, 1, 4},
+      {1, 1, 5, 1, 1, 6, 1, 8, 6, 2, 1, 4},
+      {4, 4, 9, 4, 2, 4, 6, 4, 6, 2, 1, 4}};
+  for (int i = 0; i < 5; ++i)
+    plaintext_query(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_query_numbers[i]);
+
+  auto mask = calculateMasks(ea, plaintext_query, plaintext_database);
+
+  // Fs, taus, and mus to perform the query, q = (!c0 && c2) || !(c3 && c4)
+  std::vector<std::vector<long>> Fs = {{0, 1, 2, 3, 4}, {0, 1, 2, 3, 4}};
+  std::vector<helib::Matrix<long>> taus = {
+      // The taus are the cartesian product of the above query q
+      {{-1}, {0}, {0}, {-1}, {-1}}, // One of not 0-th, not 3rd, not 4th
+      {{0}, {0}, {1}, {-1}, {-1}}}; // One of not 2nd, not 3rd, not 4th
+  std::vector<long> mus = {
+      3,
+      2}; // Offset: 3 negations in first clause, 2 in second
+
+  auto scores = calculateScores(Fs, mus, taus, mask);
+
+  // FLT on scores
+  scores.apply([&](auto& ptxt) {
+    ptxt.power(context.getAlMod().getPPowR() - 1);
+    return ptxt;
+  });
+
+  // Initialize all as one so no need to worry about padding matching
+  // if everything matches, this query evaluates to FALSE
+  helib::Ptxt<helib::BGV> expected_result(context, NTL::ZZX(0l));
+  expected_result[0] = 0;  // First row identical      -> q = false
+  expected_result[1] = 0;  // Only c1 differs          -> q = false
+  expected_result[2] = 1;  // (c3 and c4) don't match  -> q = true
+  expected_result[3] = 0;  // Only c3 and c4 match     -> q = false
+  expected_result[4] = 1;  // Only c0 and c3 match     -> q = true
+  expected_result[5] = 1;  // Only c0 and c4 match     -> q = true
+  expected_result[6] = 1;  // Only c2 and c3 match     -> q = true
+  expected_result[7] = 1;  // Only c2 and c4 match     -> q = true
+  expected_result[8] = 1;  // Only c0 matches          -> q = true
+  expected_result[9] = 1;  // Only c2 matches          -> q = true
+  expected_result[10] = 1; // Only c3 matches          -> q = true
+  expected_result[11] = 1; // Only c4 matches          -> q = true
+
+  EXPECT_EQ(scores.dims(0), mask.dims(0));
+  EXPECT_EQ(scores.dims(1), 1l);
+  for (size_t i = 0; i < scores.dims(0); ++i)
+    for (size_t j = 0; j < scores.dims(1); ++j) {
+      EXPECT_EQ(scores(i, j), expected_result);
+    }
+}
+
 TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyForCtxtAndPtxt)
 {
   helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_database(2l, 5l);
@@ -693,55 +844,6 @@ TEST_P(TestPartialMatch, databaseLookupWorksCorrectlyForCtxtAndPtxt)
     }
 }
 
-TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesPostFix)
-{
-  const helib::QueryExpr& name = helib::makeQueryExpr(0);
-  const helib::QueryExpr& age = helib::makeQueryExpr(1);
-  const helib::QueryExpr& height = helib::makeQueryExpr(2);
-  const helib::QueryExpr& weight = helib::makeQueryExpr(3);
-
-  helib::QueryExpr res = name && (age || (height && weight));
-
-  EXPECT_EQ("0 1 2 3 && || &&", res->eval());
-}
-
-TEST(TestPartialMatch, databaseLookupQueryAPIGeneratesMusAndTaus)
-{
-  const helib::QueryExpr& name = helib::makeQueryExpr(0);
-  const helib::QueryExpr& age = helib::makeQueryExpr(1);
-  const helib::QueryExpr& height = helib::makeQueryExpr(2);
-  const helib::QueryExpr& weight = helib::makeQueryExpr(3);
-
-  helib::QueryBuilder qb(name && (age || (height && weight)));
-  // 0 && (1 || (2 && 3)) = 0 && (1 || 2) && (1 && 3)
-
-  long columns = 5;
-
-  helib::Query_t query = qb.build(columns);
-
-  std::vector<std::vector<long>> expected_Fs = {{0, 1, 2, 3, 4},
-                                                {0, 1, 2, 3, 4},
-                                                {0, 1, 2, 3, 4}};
-
-  std::vector<helib::Matrix<long>> expected_taus = {
-      {{1}, {0}, {0}, {0}, {0}},  // Only 0-th column
-      {{0}, {1}, {1}, {0}, {0}},  // Either 1st or 2nd column
-      {{0}, {1}, {0}, {1}, {0}}}; // Either 1st or 3rd column
-
-  std::vector<long> expected_mus = {0, 0, 0};
-
-  EXPECT_EQ(expected_Fs.size(), query.Fs.size());
-  EXPECT_EQ(expected_mus.size(), query.mus.size());
-  EXPECT_EQ(expected_taus.size(), query.taus.size());
-  EXPECT_EQ(columns, query.taus[0].size());
-  for (size_t i = 0; i < expected_Fs.size(); ++i)
-    EXPECT_EQ(expected_Fs[i], query.Fs[i]);
-  for (size_t i = 0; i < expected_mus.size(); ++i)
-    EXPECT_EQ(expected_mus[i], query.mus[i]) << "*** i= " << i;
-  for (size_t i = 0; i < expected_taus.size(); ++i)
-    EXPECT_TRUE(expected_taus[i] == query.taus[i]) << "*** i= " << i;
-}
-
 TEST_P(TestPartialMatch, databaseLookupWorksWithQueryAPI)
 {
   helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_database(2l, 5l);
@@ -795,10 +897,155 @@ TEST_P(TestPartialMatch, databaseLookupWorksWithQueryAPI)
 
   long columns = plaintext_database.dims(1);
 
-  helib::Query_t lookup_query(qb.build(columns));
+  helib::QueryType lookup_query(qb.build(columns));
 
   auto plaintext_result = database.contains(lookup_query, plaintext_query_data);
   auto encrypted_result = database.contains(lookup_query, encrypted_query_data);
+
+  // Decrypt the result
+  helib::Matrix<helib::Ptxt<helib::BGV>> results(
+      helib::Ptxt<helib::BGV>(context),
+      encrypted_result.dims(0),
+      encrypted_result.dims(1));
+  results.entrywiseOperation<helib::Ctxt>(
+      encrypted_result,
+      [&](auto& ptxt, const auto& ctxt) -> decltype(auto) {
+        secretKey.Decrypt(ptxt, ctxt);
+        return ptxt;
+      });
+
+  EXPECT_EQ(plaintext_result, results);
+}
+
+TEST_P(TestPartialMatch, databaseLookupWorksWithQueryAPIWithNot)
+{
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_database(2l, 5l);
+  // columns/features
+  // TODO - nicer way of doing this
+  std::vector<std::vector<long>> plaintext_database_numbers = {
+      {6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
+      {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
+      {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}};
+  for (int i = 0; i < 5; ++i) {
+    plaintext_database(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+    plaintext_database(1, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+  }
+  // Have to pass in a no-op deleter because this context is handled by the
+  // fixture
+  helib::Database<helib::Ptxt<helib::BGV>> database(plaintext_database,
+                                                    context);
+
+  // columns/features
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_query_data(1l, 5l);
+  std::vector<std::vector<long>> plaintext_query_numbers = {
+      {6, 6, 6, 6, 6, 1, 6, 9, 6, 6, 6, 6},
+      {4, 8, 1, 6, 9, 4, 3, 8, 2, 9, 2, 5},
+      {2, 3, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2},
+      {1, 1, 1, 1, 8, 1, 1, 1, 5, 2, 1, 9},
+      {4, 4, 4, 4, 4, 4, 1, 4, 4, 2, 4, 1}};
+  for (int i = 0; i < 5; ++i)
+    plaintext_query_data(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_query_numbers[i]);
+
+  // Encrypt the query
+  helib::Matrix<helib::Ctxt> encrypted_query_data(helib::Ctxt(publicKey),
+                                                  1l,
+                                                  5l);
+  for (std::size_t i = 0; i < plaintext_query_data.dims(0); ++i)
+    for (std::size_t j = 0; j < plaintext_query_data.dims(1); ++j)
+      publicKey.Encrypt(encrypted_query_data(i, j), plaintext_query_data(i, j));
+
+  // Build the Mus and Taus from our query
+  const helib::QueryExpr& name = helib::makeQueryExpr(0);
+  const helib::QueryExpr& age = helib::makeQueryExpr(1);
+  const helib::QueryExpr& height = helib::makeQueryExpr(2);
+  const helib::QueryExpr& weight = helib::makeQueryExpr(3);
+
+  // !(0 && (1 || (2 && !3))
+  helib::QueryBuilder qb(!(name && (age || (height && !weight))));
+
+  long columns = plaintext_database.dims(1);
+
+  helib::QueryType lookup_query(qb.build(columns));
+
+  auto plaintext_result = database.contains(lookup_query, plaintext_query_data);
+  auto encrypted_result = database.contains(lookup_query, encrypted_query_data);
+
+  // Decrypt the result
+  helib::Matrix<helib::Ptxt<helib::BGV>> results(
+      helib::Ptxt<helib::BGV>(context),
+      encrypted_result.dims(0),
+      encrypted_result.dims(1));
+  results.entrywiseOperation<helib::Ctxt>(
+      encrypted_result,
+      [&](auto& ptxt, const auto& ctxt) -> decltype(auto) {
+        secretKey.Decrypt(ptxt, ctxt);
+        return ptxt;
+      });
+
+  EXPECT_EQ(plaintext_result, results);
+}
+
+TEST_P(TestPartialMatch, databaseLookupContainsOnStringsPtxtMatchesCtxt)
+{
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_database(2l, 5l);
+  // columns/features
+  // TODO - nicer way of doing this
+  std::vector<std::vector<long>> plaintext_database_numbers = {
+      {6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
+      {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
+      {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}};
+  for (int i = 0; i < 5; ++i) {
+    plaintext_database(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+    plaintext_database(1, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_database_numbers[i]);
+  }
+  // Have to pass in a no-op deleter because this context is handled by the
+  // fixture
+  helib::Database<helib::Ptxt<helib::BGV>> database(plaintext_database,
+                                                    context);
+
+  // columns/features
+  helib::Matrix<helib::Ptxt<helib::BGV>> plaintext_query_data(1l, 5l);
+  std::vector<std::vector<long>> plaintext_query_numbers = {
+      {6, 6, 6, 6, 6, 1, 6, 9, 6, 6, 6, 6},
+      {4, 8, 1, 6, 9, 4, 3, 8, 2, 9, 2, 5},
+      {2, 3, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2},
+      {1, 1, 1, 1, 8, 1, 1, 1, 5, 2, 1, 9},
+      {4, 4, 4, 4, 4, 4, 1, 4, 4, 2, 4, 1}};
+  for (int i = 0; i < 5; ++i)
+    plaintext_query_data(0, i) =
+        helib::Ptxt<helib::BGV>(context, plaintext_query_numbers[i]);
+
+  // Encrypt the query
+  helib::Matrix<helib::Ctxt> encrypted_query_data(helib::Ctxt(publicKey),
+                                                  1l,
+                                                  5l);
+  for (std::size_t i = 0; i < plaintext_query_data.dims(0); ++i)
+    for (std::size_t j = 0; j < plaintext_query_data.dims(1); ++j)
+      publicKey.Encrypt(encrypted_query_data(i, j), plaintext_query_data(i, j));
+
+  const helib::QueryExpr& name = helib::makeQueryExpr(0);
+  const helib::QueryExpr& age = helib::makeQueryExpr(1);
+  const helib::QueryExpr& height = helib::makeQueryExpr(2);
+  const helib::QueryExpr& weight = helib::makeQueryExpr(3);
+
+  // !(0 && (1 || 2 && !3) logically equiv to 0 1 ! 2 3 ! && ! && ! && !
+  helib::QueryBuilder qb(!(name && (age || (height && !weight))));
+  qb.removeOr();
+
+  auto clean = [](auto& x) { x.cleanUp(); };
+  auto plaintext_result =
+      database.contains(qb.getQueryString(), plaintext_query_data);
+  auto encrypted_result =
+      database.contains(qb.getQueryString(), encrypted_query_data).apply(clean);
 
   // Decrypt the result
   helib::Matrix<helib::Ptxt<helib::BGV>> results(
@@ -863,7 +1110,7 @@ TEST_P(TestPartialMatch, scoringWorksWithDatabaseAndQueryAPIs)
                                            {{2}, {1}}};
 
   // Build the query
-  helib::Query_t weighted_query(Fs, mus, taus, false);
+  helib::QueryType weighted_query(Fs, mus, taus, false);
 
   auto plaintext_scores = database.getScore(weighted_query, plaintext_query);
   auto encrypted_scores = database.getScore(weighted_query, encrypted_query);
@@ -950,7 +1197,7 @@ TEST_P(TestPartialMatch, scoringWorksWithEncryptedDatabaseAndQueryAPIs)
                                            {{2}, {1}}};
 
   // Build the query
-  helib::Query_t weighted_query(Fs, mus, taus, false);
+  helib::QueryType weighted_query(Fs, mus, taus, false);
 
   auto plaintext_scores =
       plaintext_database.getScore(weighted_query, plaintext_query);
