@@ -1,7 +1,8 @@
 HElib
 =====
 
-[![Build and Test](https://github.com/homenc/HElib/actions/workflows/github-ci.yml/badge.svg)](https://github.com/homenc/HElib/actions/workflows/github-ci.yml)
+[![Build and Test](https://github.com/helibproject/HElib/actions/workflows/github-ci.yml/badge.svg)](https://github.com/helibproject/HElib/actions/workflows/github-ci.yml)
+[![CodeQL](https://github.com/ossf/scorecard-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/helibproject/HElib/actions/workflows/codeql-analysis.yml)
 
 HElib is an open-source ([Apache License v2.0][5]) software library that
 implements [homomorphic encryption][6] (HE). Currently available schemes are the
